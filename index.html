@@ -2109,26 +2109,8 @@ async function scanSave(){
 
   try{
     scanStatus("กำลังโหลดตัวสร้าง PDF…");
-    await loadScriptOnce(JSPDF_URL);
-    const { jsPDF } = window.jspdf;
-    const bw = scanBW(), n = scan.pages.length;
-    let doc = null;
-
-    for(let i = 0; i < n; i++){
-      scanStatus("กำลังรวมหน้า " + (i+1) + "/" + n + "…");
-      const cv = await scanRenderCanvas(scan.pages[i], SCAN_MAX_PX, bw);
-      const land = cv.width > cv.height;
-      const orient = land ? "landscape" : "portrait";
-      if(!doc) doc = new jsPDF({ unit:"mm", format:"a4", orientation:orient, compress:true });
-      else doc.addPage("a4", orient);
-      const pw = land ? 297 : 210, ph = land ? 210 : 297;
-      const k = Math.min(pw / cv.width, ph / cv.height);
-      const w = cv.width * k, h = cv.height * k;
-      doc.addImage(cv.toDataURL("image/jpeg", SCAN_QUALITY), "JPEG", (pw-w)/2, (ph-h)/2, w, h, undefined, "FAST");
-      cv.width = cv.height = 0;                              // คืนหน่วยความจำ มือถือรุ่นเก่าจะได้ไม่ค้าง
-    }
-
-    const b64 = await aiFileToBase64(doc.output("blob"));
+    const blob = await scanBuildPdf(scan.pages, scanBW(), (i,n)=> scanStatus("กำลังรวมหน้า " + i + "/" + n + "…"));
+    const b64 = await aiFileToBase64(blob);
     const mb = (b64.length * 0.75 / 1048576).toFixed(1);
     if(b64.length > SCAN_MAX_B64) throw new Error("ไฟล์ใหญ่เกินไป (" + mb + " MB) — แบ่งส่งเป็นหลายไฟล์");
 
@@ -2157,11 +2139,186 @@ async function scanSave(){
   }
 }
 
+/* ============================================================
+   หน้าเพิ่มสำนวน: ถ่ายรูปหลายหน้า → รวม PDF → ให้ AI อ่านเติมฟอร์ม
+   ไฟล์ถูกพักไว้ แล้วเก็บเข้าโฟลเดอร์ของสำนวนใหม่ทันทีที่กดสร้างสำนวน
+   ============================================================ */
+let addScan = { pages:[], busy:false };
+let aiPendingAdd = null;     // { b64, mime, name } ไฟล์ที่รอเก็บเข้าโฟลเดอร์สำนวนใหม่
+
+/** รวมหน้าเป็น PDF ไฟล์เดียว — ใช้ร่วมกันทั้งหน้าสำนวนและหน้าเพิ่มสำนวน */
+async function scanBuildPdf(pages, bw, onPage){
+  await loadScriptOnce(JSPDF_URL);
+  const { jsPDF } = window.jspdf;
+  let doc = null;
+  for(let i = 0; i < pages.length; i++){
+    if(onPage) onPage(i + 1, pages.length);
+    const cv = await scanRenderCanvas(pages[i], SCAN_MAX_PX, bw);
+    const land = cv.width > cv.height;
+    const orient = land ? "landscape" : "portrait";
+    if(!doc) doc = new jsPDF({ unit:"mm", format:"a4", orientation:orient, compress:true });
+    else doc.addPage("a4", orient);
+    const pw = land ? 297 : 210, ph = land ? 210 : 297;
+    const k = Math.min(pw / cv.width, ph / cv.height);
+    const w = cv.width * k, h = cv.height * k;
+    doc.addImage(cv.toDataURL("image/jpeg", SCAN_QUALITY), "JPEG", (pw-w)/2, (ph-h)/2, w, h, undefined, "FAST");
+    cv.width = cv.height = 0;
+  }
+  return doc.output("blob");
+}
+
+function addScanBoxHTML(){
+  return `
+      <input type="file" id="ai2-cam"  accept="image/*" capture="environment" style="display:none" onchange="addScanAdd(this)">
+      <input type="file" id="ai2-imgs" accept="image/*" multiple style="display:none" onchange="addScanAdd(this)">
+      <span class="items-hint" style="display:block;margin-top:10px;">หรือถ่ายรูปเอกสารทีละหน้า</span>
+      <div class="scan-btns" style="margin-top:6px;margin-bottom:6px;">
+        <button type="button" class="btn ghost sm" onclick="document.getElementById('ai2-cam').click()">ถ่ายรูป</button>
+        <button type="button" class="btn ghost sm" onclick="document.getElementById('ai2-imgs').click()">เลือกรูปหลายหน้า</button>
+      </div>
+      <div id="ai2-pages" class="scan-pages"></div>
+      <div id="ai2-pagebar" style="display:none;margin-bottom:6px;">
+        <button type="button" class="btn sm" id="ai2-readpages" onclick="addScanRead()">ให้ AI อ่าน</button>
+      </div>
+      <label class="aichk" id="ai2-keepwrap" style="display:none"><input type="checkbox" id="ai2-keep" checked> เก็บไฟล์เข้าโฟลเดอร์ของสำนวนใหม่เมื่อกดบันทึก</label>`;
+}
+
+async function addScanAdd(inp){
+  const files = [...(inp.files||[])];
+  inp.value = "";
+  if(!files.length) return;
+  files.forEach(f=> addScan.pages.push({ key:++scanSeq, file:f, url:URL.createObjectURL(f), rot:0, crop:null, thumb:"" }));
+  loadScriptOnce(JSPDF_URL).catch(()=>{});
+  aiStatus("2", "กำลังเตรียมรูป…");
+  await addScanRender();
+  aiStatus("2", addScan.pages.length + " หน้า — ถ่ายหน้าถัดไปได้เลย หรือกด “ให้ AI อ่าน”");
+}
+
+async function addScanRender(){
+  for(const p of addScan.pages){
+    if(p.thumb) continue;
+    try{ p.thumb = (await scanRenderCanvas(p, 360, true)).toDataURL("image/jpeg", 0.7); }
+    catch(e){ p.bad = e.message; }
+  }
+  const bad = addScan.pages.filter(p=>p.bad);
+  if(bad.length){
+    toast(bad[0].bad + " — ข้ามรูปนี้ไป");
+    bad.forEach(p=>{ try{ URL.revokeObjectURL(p.url); }catch(e){} });
+    addScan.pages = addScan.pages.filter(p=>!p.bad);
+  }
+  const box = document.getElementById("ai2-pages");
+  if(!box) return;
+  const n = addScan.pages.length;
+  box.innerHTML = addScan.pages.map((p,i)=>`
+    <div class="scan-page">
+      <img src="${p.thumb}" alt="หน้า ${i+1}">
+      <div class="sp-no">หน้า ${i+1}</div>
+      <div class="sp-tools" style="grid-template-columns:repeat(4,1fr)">
+        <button type="button" title="ย้ายไปก่อน" onclick="addScanMove(${p.key},-1)" ${i===0?"disabled":""}>‹</button>
+        <button type="button" title="หมุน 90°" onclick="addScanRotate(${p.key})">⟳</button>
+        <button type="button" title="ย้ายไปหลัง" onclick="addScanMove(${p.key},1)" ${i===n-1?"disabled":""}>›</button>
+        <button type="button" class="del" title="ลบหน้านี้" onclick="addScanDel(${p.key})">✕</button>
+      </div>
+    </div>`).join("");
+  const bar = document.getElementById("ai2-pagebar");
+  if(bar) bar.style.display = n ? "" : "none";
+  const rb = document.getElementById("ai2-readpages");
+  if(rb && !addScan.busy) rb.textContent = "ให้ AI อ่าน (" + n + " หน้า)";
+}
+function addScanRotate(key){
+  const p = addScan.pages.find(x=>x.key===key); if(!p) return;
+  p.rot = (p.rot + 90) % 360; p.thumb = "";
+  addScanRender();
+}
+function addScanMove(key, dir){
+  const i = addScan.pages.findIndex(p=>p.key===key), j = i + dir;
+  if(i < 0 || j < 0 || j >= addScan.pages.length) return;
+  [addScan.pages[i], addScan.pages[j]] = [addScan.pages[j], addScan.pages[i]];
+  addScanRender();
+}
+function addScanDel(key){
+  const p = addScan.pages.find(x=>x.key===key); if(!p) return;
+  try{ URL.revokeObjectURL(p.url); }catch(e){}
+  addScan.pages = addScan.pages.filter(x=>x.key!==key);
+  addScanRender();
+  aiStatus("2", addScan.pages.length ? addScan.pages.length + " หน้า" : "");
+}
+function addScanClear(){
+  addScan.pages.forEach(p=>{ try{ URL.revokeObjectURL(p.url); }catch(e){} });
+  addScan.pages = [];
+  aiPendingAdd = null;
+  const kw = document.getElementById("ai2-keepwrap"); if(kw) kw.style.display = "none";
+  const box = document.getElementById("ai2-result"); if(box) box.innerHTML = "";
+  aiStatus("2", "");
+  addScanRender();
+}
+
+function addScanSetPending(b64, mime, name){
+  aiPendingAdd = { b64, mime, name };
+  const kw = document.getElementById("ai2-keepwrap");
+  if(kw) kw.style.display = TEAM_MODE ? "" : "none";
+}
+
+async function addScanRead(){
+  if(addScan.busy || !addScan.pages.length) return;
+  if(!TEAM_MODE){ toast("การอ่านด้วย AI ต้องเชื่อมต่อ Google Sheets ก่อน"); return; }
+  addScan.busy = true;
+  const rb = document.getElementById("ai2-readpages");
+  const pick = document.getElementById("ai2-pick");
+  if(rb){ rb.disabled = true; rb.textContent = "กำลังทำ PDF…"; }
+  if(pick) pick.disabled = true;
+  const box = document.getElementById("ai2-result");
+  if(box) box.innerHTML = "";
+  try{
+    const blob = await scanBuildPdf(addScan.pages, true, (i,n)=> aiStatus("2", "กำลังรวมหน้า " + i + "/" + n + "…"));
+    const b64 = await aiFileToBase64(blob);
+    if(b64.length > 8900000) throw new Error("ไฟล์ใหญ่เกินที่ AI รับได้ — ลดจำนวนหน้า เหลือเฉพาะหน้าที่มีข้อมูลคดี");
+    if(rb) rb.textContent = "กำลังอ่าน…";
+    aiStatus("2", "กำลังให้ AI อ่าน " + addScan.pages.length + " หน้า (ปกติ 15–40 วินาที)");
+    const r = await api("aiRead", { fileBase64:b64, mimeType:"application/pdf",
+                                    fileName:"scan.pdf", caseId:"", timeoutMs:120000 });
+    aiLastBy["2"] = r;
+    aiRenderResult(r, "2");
+    const d = new Date();
+    const be = (d.getFullYear()+543) + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+    addScanSetPending(b64, "application/pdf", scanCleanName(be + " " + (r.docType || "เอกสาร")));
+    aiStatus("2", "อ่านเสร็จแล้ว — ตรวจแล้วกดเติมลงฟอร์ม");
+  }catch(e){
+    aiStatus("2", "อ่านไม่สำเร็จ: " + e.message + " — รูปยังอยู่ กดอ่านใหม่ได้");
+  }finally{
+    addScan.busy = false;
+    if(rb) rb.disabled = false;
+    if(pick) pick.disabled = false;
+    addScanRender();
+  }
+}
+
+/** เรียกหลังสร้างสำนวนสำเร็จ — ส่งไฟล์ที่พักไว้เข้าโฟลเดอร์ของสำนวนใหม่ (ไม่ขวางการเปิดหน้าสำนวน) */
+async function addScanAttachTo(caseId){
+  const pend = aiPendingAdd;
+  const keep = document.getElementById("ai2-keep");
+  const want = pend && TEAM_MODE && (!keep || keep.checked);
+  addScanClear();
+  if(!want) return;
+  toast("กำลังเก็บไฟล์เข้าโฟลเดอร์สำนวน…");
+  try{
+    const r = await api("aiAttach", { id:caseId, fileBase64:pend.b64, mimeType:pend.mime,
+                                      fileName:pend.name, timeoutMs:120000 });
+    const c = cases.find(x=>x.id===caseId);
+    if(c && r.folderUrl && !c.folderUrl){ c.folderUrl = r.folderUrl; save(); }
+    const fb = document.getElementById("folderBtn");
+    if(fb && lastOpenedId === caseId) fb.textContent = "เปิดโฟลเดอร์เอกสาร";
+    toast("เก็บ " + r.name + " เข้าโฟลเดอร์สำนวนแล้ว");
+  }catch(e){
+    toast("เก็บไฟล์เข้าโฟลเดอร์ไม่สำเร็จ: " + e.message + " — ถ่ายใหม่ในหน้าสำนวนได้");
+  }
+}
+
 function aiBoxHTML(caseId, pfx){
   pfx = pfx || "";
   const attach = caseId
     ? `<label class="aichk"><input type="checkbox" id="ai${pfx}-attach" checked> เก็บไฟล์เข้าโฟลเดอร์สำนวนด้วย</label>`
-    : `<span class="items-hint">สร้างสำนวนเสร็จแล้วค่อยแนบไฟล์ในหน้าสำนวนได้</span>`;
+    : addScanBoxHTML();
   return `
     <div class="section-label">อ่านเอกสารด้วย AI</div>
     <div class="aibox">
@@ -2170,7 +2327,7 @@ function aiBoxHTML(caseId, pfx){
       <button type="button" class="btn ghost sm" id="ai${pfx}-pick"
               onclick="document.getElementById('ai${pfx}-file').click()">เลือกไฟล์เอกสาร</button>
       ${attach}
-      <span id="ai${pfx}-status" class="items-hint"></span>
+      <div id="ai${pfx}-status" class="items-hint" style="margin-top:6px"></div>
     </div>
     <div id="ai${pfx}-result"></div>`;
 }
@@ -2218,6 +2375,7 @@ async function aiReadFile(caseId, pfx){
     if(!pfx) aiLast = r;
     aiRenderResult(r, pfx);
     aiStatus(pfx, "อ่านเสร็จแล้ว — ตรวจแล้วกดเติมลงฟอร์ม");
+    if(pfx === "2") addScanSetPending(b64, mime, file.name);
 
     // เก็บไฟล์เข้าโฟลเดอร์สำนวน แยกคำขอจากการอ่าน จะได้ไม่พังทั้งคู่ถ้าอย่างใดอย่างหนึ่งล้ม
     const chk = document.getElementById("ai"+pfx+"-attach");
@@ -2928,6 +3086,7 @@ document.getElementById("addForm").addEventListener("submit", async e=>{
     if(sq) sq.value = nextSeqNo();
     toast("สร้างสำนวน "+id+" (ลำดับที่ "+rec.seqNo+") แล้ว");
     openCase(id);
+    addScanAttachTo(id);
   }catch(err){
     cases = cases.filter(c=>c.id!==id);      // ย้อนกลับ ไม่ให้ข้อมูลในเครื่องเพี้ยนจากเซิร์ฟเวอร์
     updateCounts();
