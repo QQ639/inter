@@ -653,6 +653,41 @@
   .scan-crop-hint{color:#fff;font-size:13.5px;margin-bottom:8px;text-align:center;}
   .scan-crop-bar{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;justify-content:center;}
   .scan-crop-bar .btn.ghost{background:#fff;}
+  /* ---------- ถาม AI เรื่องคดี ---------- */
+  .memobox{padding:12px;border:1px dashed var(--line);border-radius:10px;background:var(--bg-tint);margin-bottom:10px;}
+  .memobox textarea{width:100%;min-height:58px;resize:vertical;font:inherit;padding:8px 10px;
+    border:1px solid var(--line);border-radius:8px;background:#fff;}
+  .memo-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0;}
+  .memo-answer{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px;}
+  .memo-answer .memo-q{font-size:13px;color:var(--ink-muted);margin-bottom:6px;}
+  .memo-answer .memo-a{white-space:pre-wrap;line-height:1.65;}
+  .memobox > .items-hint{font-size:12.5px;}
+  /* ---------- บันทึกงาน ---------- */
+  .notebox{padding:12px;border:1px dashed var(--line);border-radius:10px;background:var(--bg-tint);margin-bottom:10px;}
+  .notebox textarea{width:100%;min-height:58px;resize:vertical;font:inherit;padding:8px 10px;
+    border:1px solid var(--line);border-radius:8px;background:#fff;}
+  .note-opts{display:flex;gap:16px;flex-wrap:wrap;margin:8px 0 4px;font-size:14px;}
+  .note-opts label{display:flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;margin:0;font-weight:500;color:var(--ink);}
+  .note-opts input{width:18px;height:18px;margin:0;flex:none;accent-color:var(--jade);}
+  .note-chk input{flex:none;margin:0;}
+  .note-due{margin:6px 0;max-width:260px;}
+  .note-due > label{display:block;font-size:13px;color:var(--ink-muted);margin-bottom:4px;}
+  .note-head{font-size:12.5px;color:var(--ink-muted);margin:12px 0 4px;letter-spacing:.02em;}
+  .note-item{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid var(--line);
+    border-radius:8px;padding:9px 11px;margin-bottom:6px;}
+  .note-item[data-case-id]{cursor:pointer;}
+  .note-item[data-case-id]:hover{border-color:var(--jade);}
+  .note-chk{padding:2px;cursor:pointer;}
+  .note-chk input{width:20px;height:20px;cursor:pointer;accent-color:var(--jade);}
+  .note-body{flex:1;min-width:0;}
+  .note-case{font-size:12px;color:var(--ink-faint);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .note-text{white-space:pre-wrap;line-height:1.55;}
+  .note-meta{font-size:12px;color:var(--ink-faint);margin-top:3px;}
+  .note-item.is-done .note-text{text-decoration:line-through;color:var(--ink-faint);}
+  .note-item.nt-over{border-left:4px solid var(--rose);}
+  .note-item.nt-soon{border-left:4px solid var(--amber);}
+  .note-meta .nt-over{color:var(--rose);font-weight:600;}
+  .note-meta .nt-soon{color:var(--amber);font-weight:600;}
 </style>
 </head>
 <body>
@@ -760,7 +795,7 @@
           <input id="add-seqNo" readonly class="ro" value="">
           <span style="font-size:12px;color:var(--ink-faint);margin-top:4px;">ระบบออกให้อัตโนมัติ · ใช้เป็นรหัส QR ของสำนวนนี้</span></div>
         <div class="field"><label>คดีหมายเลขดำ</label>
-          <input name="caseNumber" placeholder="เช่น พ.842/2569" required></div>
+          <input name="caseNumber" id="add-caseNumber" placeholder="เช่น พ.842/2569" required></div>
       </div>
       <div class="grid2">
         <div class="field"><label>คดีหมายเลขแดง</label>
@@ -769,7 +804,7 @@
       </div>
       <div class="grid2">
         <div class="field"><label>ศาล</label>
-          <input name="court" placeholder="เช่น ศาลจังหวัดพระประแดง" required></div>
+          <input name="court" id="add-court" placeholder="เช่น ศาลจังหวัดพระประแดง" required></div>
         <div class="field"><label>ทนายผู้รับผิดชอบ</label>
           <input name="lawyer" placeholder="ชื่อทนายความ" required></div>
       </div>
@@ -790,7 +825,7 @@
           <select name="caseType" id="add-caseType" onchange="toggleOther('add-caseType','add-caseType-other')"></select>
           <input name="caseTypeOther" id="add-caseType-other" placeholder="ระบุประเภทคดี" style="display:none;margin-top:6px;"></div>
         <div class="field"><label>สถานะเริ่มต้น</label>
-          <select name="status" id="add-status" onchange="toggleOther('add-status','add-status-other')"></select>
+          <select name="status" id="add-status" onchange="toggleOther('add-status','add-status-other');addReqSync()"></select>
           <input name="statusOther" id="add-status-other" placeholder="ระบุสถานะ" style="display:none;margin-top:6px;"></div>
       </div>
       <div class="grid2">
@@ -1561,7 +1596,7 @@ let storageOK = true;
 function save(){
   if(!storageOK) return;
   try{
-    localStorage.setItem(STORE_KEY, JSON.stringify({cases, events, billings: histBillingsCache}));
+    localStorage.setItem(STORE_KEY, JSON.stringify({cases, events, billings: histBillingsCache, notes}));
   }catch(e){
     storageOK = false;
     toast("บันทึกลงเครื่องไม่สำเร็จ — ข้อมูลจะหายเมื่อปิดหน้า");
@@ -1577,6 +1612,7 @@ function load(){
     cases.forEach(normalizeCase);
     if(Array.isArray(data.events)) events = data.events;   // เผื่อแคชเก่าที่ยังไม่มี events ไม่ให้พัง
     if(Array.isArray(data.billings)) histBillingsCache = data.billings;
+    if(Array.isArray(data.notes)) notes = data.notes;
     return true;
   }catch(e){
     storageOK = false;
@@ -1657,6 +1693,7 @@ async function bootLoad(fresh){
   events = (r.events||[]).filter(e=>e.date);
   updateEventCount();
   if(r.billings) histBillingsCache = r.billings;
+  if(Array.isArray(r.notes)) notes = r.notes;
   save();                       // เก็บสำเนาชุดล่าสุดไว้ใช้เปิดครั้งหน้าแบบไม่ต้องรอเน็ต
   return r;
 }
@@ -1728,7 +1765,16 @@ function validateId(raw, ignoreId){
   if(cases.some(c=>c.id===raw && c.id!==ignoreId)) return "รหัสสำนวน "+raw+" ถูกใช้ไปแล้ว";
   return null;
 }
-function refreshIdHint(){ /* ไม่ใช้แล้ว — รหัสผูกกับลำดับสำนวน */ }
+function refreshIdHint(){ addReqSync(); }
+
+/** คดีรอฟ้อง: ยังไม่มีเลขคดีดำ และอาจยังไม่รู้ศาล — ไม่บังคับกรอกสองช่องนี้ */
+function addReqSync(){
+  const st = document.getElementById("add-status");
+  const pend = !!st && PENDING_STATUSES.includes(st.value);
+  const no = document.getElementById("add-caseNumber"), ct = document.getElementById("add-court");
+  if(no){ no.required = !pend; no.placeholder = pend ? "เว้นว่างได้ — ยังไม่ได้ฟ้อง" : "เช่น พ.842/2569"; }
+  if(ct){ ct.required = !pend; ct.placeholder = pend ? "ศาลที่จะยื่นฟ้อง (เว้นว่างได้)" : "เช่น ศาลจังหวัดพระประแดง"; }
+}
 function statusLabel(s){ return s || "—"; }
 function isKnownStatus(v){ return STATUS_OPTIONS.includes(v); }
 function isKnownCaseType(v){ return CASE_TYPE_OPTIONS.includes(v); }
@@ -2253,8 +2299,8 @@ function addScanClear(){
   addScanRender();
 }
 
-function addScanSetPending(b64, mime, name){
-  aiPendingAdd = { b64, mime, name };
+function addScanSetPending(b64, mime, name, r){
+  aiPendingAdd = { b64, mime, name, r };
   const kw = document.getElementById("ai2-keepwrap");
   if(kw) kw.style.display = TEAM_MODE ? "" : "none";
 }
@@ -2281,7 +2327,7 @@ async function addScanRead(){
     aiRenderResult(r, "2");
     const d = new Date();
     const be = (d.getFullYear()+543) + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
-    addScanSetPending(b64, "application/pdf", scanCleanName(be + " " + (r.docType || "เอกสาร")));
+    addScanSetPending(b64, "application/pdf", scanCleanName(be + " " + (r.docType || "เอกสาร")), r);
     aiStatus("2", "อ่านเสร็จแล้ว — ตรวจแล้วกดเติมลงฟอร์ม");
   }catch(e){
     aiStatus("2", "อ่านไม่สำเร็จ: " + e.message + " — รูปยังอยู่ กดอ่านใหม่ได้");
@@ -2299,19 +2345,251 @@ async function addScanAttachTo(caseId){
   const keep = document.getElementById("ai2-keep");
   const want = pend && TEAM_MODE && (!keep || keep.checked);
   addScanClear();
-  if(!want) return;
-  toast("กำลังเก็บไฟล์เข้าโฟลเดอร์สำนวน…");
+  if(!pend || !TEAM_MODE) return;
+  let fileUrl = "";
+  if(want){
+    toast("กำลังเก็บไฟล์เข้าโฟลเดอร์สำนวน…");
+    try{
+      const r = await api("aiAttach", { id:caseId, fileBase64:pend.b64, mimeType:pend.mime,
+                                        fileName:pend.name, timeoutMs:120000 });
+      fileUrl = r.url;
+      const c = cases.find(x=>x.id===caseId);
+      if(c && r.folderUrl && !c.folderUrl){ c.folderUrl = r.folderUrl; save(); }
+      const fb = document.getElementById("folderBtn");
+      if(fb && lastOpenedId === caseId) fb.textContent = "เปิดโฟลเดอร์เอกสาร";
+      toast("เก็บ " + r.name + " เข้าโฟลเดอร์สำนวนแล้ว");
+    }catch(e){
+      toast("เก็บไฟล์เข้าโฟลเดอร์ไม่สำเร็จ: " + e.message + " — ถ่ายใหม่ในหน้าสำนวนได้");
+    }
+  }
+  // จดสรุปที่ AI อ่านไว้ลงบันทึกคดีของสำนวนใหม่
+  try{ if(await memoSave(caseId, pend.r, pend.name, fileUrl)) toast("จดสรุปเอกสารลงบันทึกคดีแล้ว"); }
+  catch(e){ toast("จดบันทึกคดีไม่สำเร็จ: " + e.message); }
+}
+
+/* ============================================================
+   บันทึกคดี (AI) — Google Docs ในโฟลเดอร์สำนวน
+   จดสรุปทุกครั้งที่ AI อ่านเอกสาร และถามเรื่องคดีจากบันทึกได้
+   ============================================================ */
+function memoEntry(r, fileName){
+  return {
+    title: (r && r.docType ? r.docType : "เอกสาร") + (fileName ? " · " + fileName : ""),
+    text:  (r && (r.notes || r.summary)) || ""
+  };
+}
+/** จดผลที่ AI อ่านลงบันทึกคดี — คืน null ถ้าไม่มีอะไรให้จด */
+async function memoSave(caseId, r, fileName, fileUrl){
+  const e = memoEntry(r, fileName);
+  if(!caseId || !e.text || !TEAM_MODE) return null;
+  return api("memoAdd", { id:caseId, title:e.title, text:e.text, fileUrl:fileUrl||"",
+                          fileName:fileName||"", source:"AI อ่านเอกสาร", timeoutMs:60000 });
+}
+
+function memoBoxHTML(c){
+  const id = esc(c.id);
+  return `
+    <div class="section-label">ถาม AI เรื่องคดีนี้</div>
+    <div class="memobox">
+      <textarea id="memo-q" rows="2" placeholder="เช่น จำเลยให้การต่อสู้ว่าอะไร · พยานโจทก์มีใครบ้าง · ครบกำหนดอุทธรณ์วันไหน"
+        onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)){event.preventDefault();memoAsk('${id}');}"></textarea>
+      <div class="memo-bar">
+        <button type="button" class="btn sm" id="memo-ask" onclick="memoAsk('${id}')">ถาม</button>
+        <button type="button" class="btn ghost sm" onclick="memoOpen('${id}')">เปิดบันทึกคดี</button>
+        <span id="memo-status" class="items-hint"></span>
+      </div>
+      <div id="memo-answer" class="memo-answer" style="display:none"></div>
+      <div class="items-hint">AI ตอบจากบันทึกคดี (Google Docs ในโฟลเดอร์สำนวน) และข้อมูลในระบบ · ระบบจดสรุปให้ทุกครั้งที่ให้ AI อ่านเอกสาร</div>
+    </div>`;
+}
+
+async function memoAsk(caseId){
+  const qEl = document.getElementById("memo-q");
+  const q = qEl ? qEl.value.trim() : "";
+  if(!q){ toast("พิมพ์คำถามก่อน"); if(qEl) qEl.focus(); return; }
+  const btn = document.getElementById("memo-ask");
+  const st  = document.getElementById("memo-status");
+  const out = document.getElementById("memo-answer");
+  if(btn){ btn.disabled = true; btn.textContent = "กำลังคิด…"; }
+  if(st) st.textContent = "AI กำลังอ่านบันทึกคดี (ปกติ 5–20 วินาที)";
   try{
-    const r = await api("aiAttach", { id:caseId, fileBase64:pend.b64, mimeType:pend.mime,
-                                      fileName:pend.name, timeoutMs:120000 });
+    const r = await api("memoAsk", { id:caseId, question:q, timeoutMs:90000 });
+    if(out){
+      out.style.display = "";
+      out.innerHTML = `<div class="memo-q">ถาม: ${esc(q)}</div><div class="memo-a">${esc(r.answer||"")}</div>` +
+        (r.hasMemo ? "" : `<div class="items-hint">ยังไม่มีบันทึกคดี — คำตอบนี้มาจากข้อมูลในระบบเท่านั้น ให้ AI อ่านเอกสารคดีก่อนเพื่อให้ตอบได้ละเอียดขึ้น</div>`);
+    }
+    if(st) st.textContent = "";
+  }catch(e){
+    if(st) st.textContent = "ถามไม่สำเร็จ: " + e.message;
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = "ถาม"; }
+  }
+}
+
+async function memoOpen(caseId){
+  if(!TEAM_MODE){ toast("ต้องเชื่อมต่อ Google Sheets ก่อน"); return; }
+  const w = window.open("", "_blank");          // เปิดหน้าต่างก่อน กันเบราว์เซอร์บล็อกป๊อปอัป
+  const st = document.getElementById("memo-status");
+  if(st) st.textContent = "กำลังเปิดบันทึกคดี…";
+  try{
+    const r = await api("memoOpen", { id:caseId });
+    if(w) w.location.href = r.docUrl; else window.open(r.docUrl, "_blank");
     const c = cases.find(x=>x.id===caseId);
     if(c && r.folderUrl && !c.folderUrl){ c.folderUrl = r.folderUrl; save(); }
-    const fb = document.getElementById("folderBtn");
-    if(fb && lastOpenedId === caseId) fb.textContent = "เปิดโฟลเดอร์เอกสาร";
-    toast("เก็บ " + r.name + " เข้าโฟลเดอร์สำนวนแล้ว");
+    if(st) st.textContent = "";
   }catch(e){
-    toast("เก็บไฟล์เข้าโฟลเดอร์ไม่สำเร็จ: " + e.message + " — ถ่ายใหม่ในหน้าสำนวนได้");
+    if(w) w.close();
+    if(st) st.textContent = "เปิดไม่สำเร็จ: " + e.message;
   }
+}
+
+/* ============================================================
+   บันทึกงาน — รอดำเนินการ / ดำเนินการแล้ว + กำหนดเสร็จ
+   เก็บในชีต "บันทึกงาน" และจดซ้ำลง Google Docs บันทึกคดีให้ AI ใช้
+   ============================================================ */
+let notes = [];
+
+function noteDueInfo(n){
+  if(n.done || !n.due) return null;
+  const d = Math.round((new Date(n.due) - new Date().setHours(0,0,0,0)) / 86400000);
+  const txt = d < 0 ? "เลยกำหนด " + (-d) + " วัน" : d === 0 ? "ครบวันนี้" : d === 1 ? "ครบพรุ่งนี้" : "อีก " + d + " วัน";
+  return { days:d, txt, cls: d < 0 ? "nt-over" : d <= 2 ? "nt-soon" : "" };
+}
+function noteSortPending(a, b){
+  if(a.due && b.due) return a.due.localeCompare(b.due);
+  if(a.due) return -1;
+  if(b.due) return 1;
+  return String(a.createdAt).localeCompare(String(b.createdAt));
+}
+function noteShortDate(s){ return s ? fmtDate(String(s).slice(0,10)) : ""; }
+
+function notesBoxHTML(c){
+  const id = esc(c.id);
+  return `
+    <div class="section-label">บันทึก / งานที่ต้องทำ</div>
+    <div class="notebox">
+      <textarea id="note-text" rows="2" placeholder="พิมพ์ หรือกดไมค์บนแป้นพิมพ์แล้วพูด เช่น ยื่นคำแถลงขอหมายเรียกพยาน"></textarea>
+      <div class="note-opts">
+        <label><input type="radio" name="note-st" value="pending" checked onchange="noteStChange()"> รอดำเนินการ</label>
+        <label><input type="radio" name="note-st" value="done" onchange="noteStChange()"> ดำเนินการแล้ว</label>
+      </div>
+      <div class="note-due" id="note-due-wrap">
+        <label>กำหนดเสร็จ <span class="items-hint">(ไม่บังคับ)</span></label>
+        <div class="tdp" data-tdp>
+          <input type="text" class="tdp-display" readonly placeholder="เลือกวันที่">
+          <input type="hidden" class="tdp-value" id="note-due">
+          <div class="tdp-pop"></div>
+        </div>
+      </div>
+      <div class="memo-bar">
+        <button type="button" class="btn sm" id="note-save" onclick="noteAdd('${id}')">บันทึก</button>
+        <span id="note-status" class="items-hint"></span>
+      </div>
+      <div id="note-list"></div>
+    </div>`;
+}
+
+function noteStChange(){
+  const done = (document.querySelector('input[name="note-st"]:checked')||{}).value === "done";
+  const w = document.getElementById("note-due-wrap");
+  if(w) w.style.display = done ? "none" : "";
+}
+
+function noteItemHTML(n, withCase){
+  const di = noteDueInfo(n);
+  const c = withCase ? cases.find(x=>x.id===n.caseId) : null;
+  const meta = [];
+  if(n.due && !n.done) meta.push(`<span class="${di?di.cls:""}">กำหนด ${esc(fmtDate(n.due))} · ${esc(di?di.txt:"")}</span>`);
+  meta.push("จดโดย " + esc(n.by||"—") + " " + esc(noteShortDate(n.createdAt)));
+  if(n.done && n.doneBy) meta.push("ปิดโดย " + esc(n.doneBy) + " " + esc(noteShortDate(n.doneAt)));
+  return `<div class="note-item ${n.done?"is-done":""} ${di?di.cls:""}" ${withCase && c ? `data-case-id="${esc(c.id)}" tabindex="0" role="button"` : ""}>
+    <label class="note-chk" onclick="event.stopPropagation()" title="${n.done?"เปิดงานกลับ":"ติ๊กเมื่อดำเนินการแล้ว"}">
+      <input type="checkbox" ${n.done?"checked":""} onchange="noteToggle('${esc(n.id)}', this.checked)">
+    </label>
+    <div class="note-body">
+      ${withCase ? `<div class="note-case">${c ? esc((c.seqNo||c.id) + " · " + partiesDisplay(c)) : esc(n.caseId)}</div>` : ""}
+      <div class="note-text">${esc(n.text)}</div>
+      <div class="note-meta">${meta.join(" · ")}</div>
+    </div>
+  </div>`;
+}
+
+function renderNoteList(caseId){
+  const box = document.getElementById("note-list");
+  if(!box) return;
+  const mine = notes.filter(n=>n.caseId===caseId);
+  const pend = mine.filter(n=>!n.done).sort(noteSortPending);
+  const done = mine.filter(n=>n.done).sort((a,b)=> String(b.doneAt||b.createdAt).localeCompare(String(a.doneAt||a.createdAt)));
+  box.innerHTML = !mine.length ? `<div class="items-hint" style="margin-top:6px">ยังไม่มีบันทึก</div>`
+    : (pend.length ? `<div class="note-head">รอดำเนินการ (${pend.length})</div>` + pend.map(n=>noteItemHTML(n,false)).join("") : "")
+    + (done.length ? `<div class="note-head">ดำเนินการแล้ว (${done.length})</div>` + done.map(n=>noteItemHTML(n,false)).join("") : "");
+}
+
+function noteCanWrite(){
+  if(!TEAM_MODE){ toast("ต้องเชื่อมต่อ Google Sheets ก่อน"); return false; }
+  if(readOnly){ toast(syncing ? "กำลังอัปเดตข้อมูล รอสักครู่แล้วกดใหม่" : "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ตอนนี้ยังบันทึกไม่ได้"); return false; }
+  return true;
+}
+
+async function noteAdd(caseId){
+  const tEl = document.getElementById("note-text");
+  const text = tEl ? tEl.value.trim() : "";
+  if(!text){ toast("พิมพ์บันทึกก่อน"); if(tEl) tEl.focus(); return; }
+  if(!noteCanWrite()) return;
+  const done = (document.querySelector('input[name="note-st"]:checked')||{}).value === "done";
+  const dueEl = document.getElementById("note-due");
+  const due = done ? "" : (dueEl ? dueEl.value : "");
+  const btn = document.getElementById("note-save"), st = document.getElementById("note-status");
+  if(btn){ btn.disabled = true; btn.textContent = "กำลังบันทึก…"; }
+  try{
+    const r = await api("noteAdd", { caseId, text, done, due, timeoutMs:60000 });
+    notes.push(r.note); save();
+    if(tEl) tEl.value = "";
+    if(dueEl){ dueEl.value = ""; syncDatePicker(dueEl); }
+    const p = document.querySelector('input[name="note-st"][value="pending"]'); if(p){ p.checked = true; noteStChange(); }
+    renderNoteList(caseId);
+    if(st) st.textContent = r.docError ? "บันทึกแล้ว · แต่จดลง Docs ไม่สำเร็จ: " + r.docError : "บันทึกแล้ว";
+  }catch(e){
+    if(st) st.textContent = "บันทึกไม่สำเร็จ: " + e.message;
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = "บันทึก"; }
+  }
+}
+
+async function noteToggle(noteId, done){
+  const n = notes.find(x=>x.id===noteId);
+  if(!n) return;
+  if(!noteCanWrite()){ refreshNoteViews(n.caseId); return; }
+  const before = Object.assign({}, n);
+  n.done = done; n.doneBy = done ? (session.user||"") : ""; n.doneAt = done ? new Date().toISOString().slice(0,16).replace("T"," ") : "";
+  refreshNoteViews(n.caseId);
+  try{
+    const r = await api("noteSetStatus", { noteId, done });
+    Object.assign(n, r.note); save();
+    toast(done ? "ปิดงานแล้ว" : "เปิดงานกลับเป็นรอดำเนินการ");
+  }catch(e){
+    Object.assign(n, before);
+    toast("บันทึกสถานะไม่สำเร็จ: " + e.message);
+  }
+  refreshNoteViews(n.caseId);
+}
+
+function refreshNoteViews(caseId){
+  if(document.getElementById("note-list") && lastOpenedId === caseId) renderNoteList(caseId);
+  const home = document.getElementById("view-home");
+  if(home && home.classList.contains("active")) renderHome();
+}
+
+/** กล่องรายการรอดำเนินการบนหน้าหลัก — ของทุกคน ทุกคดี */
+function pendingNotesHTML(){
+  if(!TEAM_MODE) return "";
+  const pend = notes.filter(n=>!n.done).sort(noteSortPending);
+  let html = `<div class="section-label">รายการรอดำเนินการ (${pend.length})</div>`;
+  if(!pend.length) return html + `<div class="empty"><b>ไม่มีงานค้าง</b>จดงานที่ต้องทำได้ในหน้าสำนวน</div>`;
+  const MAX = 30;
+  html += `<div class="note-home">` + pend.slice(0, MAX).map(n=>noteItemHTML(n,true)).join("") + `</div>`;
+  if(pend.length > MAX) html += `<div class="items-hint">แสดง ${MAX} รายการแรกจาก ${pend.length} รายการ</div>`;
+  return html;
 }
 
 function aiBoxHTML(caseId, pfx){
@@ -2375,18 +2653,27 @@ async function aiReadFile(caseId, pfx){
     if(!pfx) aiLast = r;
     aiRenderResult(r, pfx);
     aiStatus(pfx, "อ่านเสร็จแล้ว — ตรวจแล้วกดเติมลงฟอร์ม");
-    if(pfx === "2") addScanSetPending(b64, mime, file.name);
+    if(pfx === "2") addScanSetPending(b64, mime, file.name, r);
 
     // เก็บไฟล์เข้าโฟลเดอร์สำนวน แยกคำขอจากการอ่าน จะได้ไม่พังทั้งคู่ถ้าอย่างใดอย่างหนึ่งล้ม
     const chk = document.getElementById("ai"+pfx+"-attach");
+    let fileUrl = "", msg = "อ่านเสร็จแล้ว";
     if(chk && chk.checked && caseId){
       try{
         const f = await api("aiAttach", { id: caseId, fileBase64: b64,
                                           mimeType: mime, fileName: file.name });
-        aiStatus(pfx, "อ่านเสร็จแล้ว · เก็บไฟล์เข้าโฟลเดอร์สำนวนแล้ว");
+        fileUrl = f.url;
+        msg += " · เก็บไฟล์แล้ว";
         if(box) box.insertAdjacentHTML("afterbegin",
           `<div class="ai-note">เก็บไฟล์แล้ว <a href="${esc(f.url)}" target="_blank">เปิดไฟล์</a> · <a href="${esc(f.folderUrl)}" target="_blank">เปิดโฟลเดอร์สำนวน</a></div>`);
-      }catch(e){ aiStatus(pfx, "อ่านเสร็จแล้ว · แต่เก็บไฟล์ไม่สำเร็จ: " + e.message); }
+      }catch(e){ msg += " · เก็บไฟล์ไม่สำเร็จ: " + e.message; }
+      aiStatus(pfx, msg);
+    }
+    // จดสรุปลงบันทึกคดี (Google Docs) ทุกครั้งที่อ่านเอกสารในหน้าสำนวน
+    if(caseId){
+      try{ if(await memoSave(caseId, r, file.name, fileUrl)) msg += " · จดลงบันทึกคดีแล้ว"; }
+      catch(e){ msg += " · จดบันทึกคดีไม่สำเร็จ: " + e.message; }
+      aiStatus(pfx, msg + " — ตรวจแล้วกดเติมลงฟอร์ม");
     }
   }catch(err){
     aiStatus(pfx, "อ่านไม่สำเร็จ: " + err.message);
@@ -3124,6 +3411,8 @@ function openCase(id){
       <div>
         ${aiBoxHTML(c.id,"")}
         ${scanBoxHTML(c)}
+        ${TEAM_MODE ? notesBoxHTML(c) : ""}
+        ${TEAM_MODE ? memoBoxHTML(c) : ""}
         <div class="field"><label>หมายเหตุ</label><textarea id="f-notes" rows="2">${esc(c.notes)}</textarea></div>
         <div class="grid2">
           <div class="field"><label>คดีหมายเลขดำ</label><input id="f-caseNumber" value="${esc(c.caseNumber)}"></div>
@@ -3361,6 +3650,7 @@ function openCase(id){
   renderQR(url);
   renderCaseDocs(id);
   scanInit(id);
+  renderNoteList(id);
   if(TEAM_MODE && !readOnly) loadServerLog(id);
 }
 
@@ -4083,10 +4373,11 @@ function printCover(id){
   const red = splitCaseNo(c.redNumber);
 
   // ๑๐ บรรทัดนัดพิจารณา
-  const appts = (c.appointments||[]).slice(0,8);
-  const rest  = (c.appointments||[]).slice(8);
+  const NFIRST = 5;   // สำนักงานกฎหมายสากล: หน้าแรกมีบรรทัดนัด ๕ บรรทัด (ตัวอักษรใหญ่ขึ้น)
+  const appts = (c.appointments||[]).slice(0,NFIRST);
+  const rest  = (c.appointments||[]).slice(NFIRST);
   let apptLines = "";
-  for(let i=0;i<8;i++){
+  for(let i=0;i<NFIRST;i++){
     const a = appts[i];
     apptLines += `<div class="ap"><span class="apn">${toThaiNum(i+1)}.</span>
       <span class="apv">${a ? esc(coverApptLine(a)) : "&nbsp;"}</span></div>`;
@@ -4132,6 +4423,9 @@ function printCover(id){
     .ctrtxt{text-align:center;}
     .val{color:#8b0000;font-weight:600;padding:0 5px;}
     .ln.m{flex:0 0 175px;}
+    /* วันที่ห้ามตัดบรรทัด — เดิม "๘ กรกฎาคม ๒๕๖๘" ถูกบีบจนแตกเป็นสามบรรทัด */
+    .ln.d{white-space:nowrap;flex:1 0 auto;}
+    .ln.m.d{flex:0 0 auto;min-width:150px;}
     .red{color:#8b0000;}
     .lb{color:#000;font-weight:700;}
     .apn,.ctr,.party .kw,.prow .pl{color:#000;}
@@ -4170,6 +4464,22 @@ function printCover(id){
     .t2 th,.t2 td{border:1px solid #000;padding:5px 7px;font-size:15.5pt;height:32px;vertical-align:top;}
     .t2 th{background:#eaecf8;font-weight:700;text-align:center;}
     .t2 td.c{text-align:center;}
+
+    /* ===== สำนักงานกฎหมายสากล: ส่วนหัวขนาดเดิม เนื้อหาใหญ่ขึ้น ๑.๕ เท่า ===== */
+    body{font-size:23pt;line-height:1.25;}
+    .head{font-size:15.5pt;line-height:1.38;}
+    .r{margin:3px 0;gap:6px;}
+    .ap{margin:3px 0;}
+    .ln,.prow .pv,.apv{min-height:30px;padding:0 4px;}
+    .ln.s{flex:0 0 130px;} .ln.m{flex:0 0 220px;} .ln.m.d{min-width:200px;}
+    .party .kw{width:104px;} .party .pp{gap:4px;}
+    .prow .pl{min-width:84px;}
+    .box{width:32px;height:26px;vertical-align:-5px;}
+    .apn{width:36px;}
+    .ctr{margin:3px 0 0;}
+    .qrbox div{font-size:13pt;}
+    .t2 th,.t2 td{font-size:19pt;height:40px;padding:3px 6px;}
+    .t2 td:nth-child(2){white-space:nowrap;}
   </style></head><body>
   <div class="wm"><img src="${logo}"></div>
   <div class="wrap">
@@ -4225,14 +4535,17 @@ function printCover(id){
       </div>
     </div>
 
+    <!-- สำนักงานกฎหมายสากล: ตัวอักษรใหญ่ขึ้น จึงแยกแถวไม่ให้ล้นขอบกระดาษ -->
     <div class="r">
       <span class="lb">ข้อหาหรือฐานความผิด</span><span class="ln">${esc(c.charge||"")}</span>
-      <span class="lb">ทุนทรัพย์</span><span class="ln m">${esc(toThaiNum(c.claimAmount||""))}</span><span>บาท</span>
     </div>
     <div class="r">
+      <span class="lb">ทุนทรัพย์</span><span class="ln">${esc(toThaiNum(c.claimAmount||""))}</span><span>บาท</span>
       <span class="lb">ทนายฝ่าย</span><span class="ln s">${esc(c.side||"")}</span>
-      <span class="lb">ฟ้องวันที่</span><span class="ln">${esc(thaiFullDate(c.filedDate))}</span>
-      <span class="lb">วันยื่นบัญชีพยาน</span><span class="ln m">${esc(thaiFullDate(c.witnessDate))}</span>
+    </div>
+    <div class="r">
+      <span class="lb">ฟ้องวันที่</span><span class="ln d">${esc(thaiFullDate(c.filedDate))}</span>
+      <span class="lb">วันยื่นบัญชีพยาน</span><span class="ln d">${esc(thaiFullDate(c.witnessDate))}</span>
     </div>
     <div class="r">
       <span class="lb">รายงานการเดินหมาย</span><span class="box"></span><span>ปิดหมาย</span>
@@ -4240,16 +4553,20 @@ function printCover(id){
       <span class="lb">วันที่</span><span class="ln">${esc(c.summonsNote||"")}</span>
     </div>
     <div class="r">
-      <span class="lb">วันยื่นคำให้การจำเลย</span><span class="ln">${esc(thaiFullDate(c.answerDate))}</span>
-      <span class="lb">วันยื่นบัญชีพยานจำเลย</span><span class="ln">${esc(thaiFullDate(c.witnessDate2))}</span>
+      <span class="lb">วันยื่นคำให้การจำเลย</span><span class="ln d">${esc(thaiFullDate(c.answerDate))}</span>
+    </div>
+    <div class="r">
+      <span class="lb">วันยื่นบัญชีพยานจำเลย</span><span class="ln d">${esc(thaiFullDate(c.witnessDate2))}</span>
     </div>
 
     <div class="ctr">นัดพิจารณา</div>
     ${apptLines}
-    ${rest.length?`<div style="font-size:12.5pt;text-align:right;">(ดูนัดที่ ${toThaiNum(9)} เป็นต้นไปในหน้าถัดไป — อีก ${toThaiNum(rest.length)} นัด)</div>`:""}
+    ${rest.length?`<div style="font-size:15pt;line-height:1.1;text-align:right;">(ดูนัดที่ ${toThaiNum(NFIRST+1)} เป็นต้นไปในหน้าถัดไป — อีก ${toThaiNum(rest.length)} นัด)</div>`:""}
 
     <div class="r">
       <span class="lb">แถลงปิดวันแถลงปิดสำนวน</span><span class="ln"></span>
+    </div>
+    <div class="r">
       <span class="lb">วันฟังคำพิพากษาศาลชั้นต้น</span><span class="ln"></span>
     </div>
     <div class="r"><span class="lb">คำพิพากษาศาลชั้นต้น</span><span class="ln">${esc(c.verdict1||"")}</span></div>
@@ -4277,7 +4594,7 @@ function printCover(id){
       <div class="ht"><b>นัดพิจารณา (ต่อ)</b>
         <small>${esc(partiesDisplay(c))}</small>
         <small>เลขคดี ${esc(toThaiNum(c.caseNumber))} · เรื่องที่ ${esc(toThaiNum(c.seqNo||"—"))}</small>
-        <small>ต่อจากนัดที่ ${toThaiNum(8)} ในหน้าแรก</small>
+        <small>ต่อจากนัดที่ ${toThaiNum(NFIRST)} ในหน้าแรก</small>
       </div>
     </div>
     <div class="rule"></div>
@@ -4291,14 +4608,14 @@ function printCover(id){
         let out = "";
         // นัดที่ ๕ เป็นต้นไป เติมจากข้อมูลจริง
         rest.forEach((a,i)=>{
-          out += `<tr><td class="c">${toThaiNum(i+9)}</td>
+          out += `<tr><td class="c">${toThaiNum(i+NFIRST+1)}</td>
             <td>${esc(thaiFullDate(a.date))}${a.endDate&&a.endDate!==a.date?" – "+esc(thaiFullDate(a.endDate)):""}</td>
             <td class="c">${esc(a.time||"")}</td>
             <td>${esc(a.note||"")}</td><td></td></tr>`;
         });
-        // เติมแถวว่างให้เต็มหน้า (รวม ๒๐ แถว)
-        for(let i=rest.length;i<20;i++){
-          out += `<tr><td class="c">${toThaiNum(i+9)}</td><td></td><td></td><td></td><td></td></tr>`;
+        // เติมแถวว่างให้เต็มหน้า (รวม ๒๒ แถว)
+        for(let i=rest.length;i<22;i++){
+          out += `<tr><td class="c">${toThaiNum(i+NFIRST+1)}</td><td></td><td></td><td></td><td></td></tr>`;
         }
         return out;
       })()}</tbody>
@@ -6490,6 +6807,8 @@ function renderHome(){
     ${stat(weekList.length + evWeek.length,"นัดใน 7 วัน", (weekList.length+evWeek.length)?"s-warn":"")}
     ${stat(urgent.length,"ครบกำหนดใน 7 วัน", urgent.length?"s-warn":"")}
     ${stat(overdue.length,"เลยกำหนดแล้ว", overdue.length?"s-bad":"")}
+    ${TEAM_MODE ? (()=>{ const pn = notes.filter(n=>!n.done); const od = pn.filter(n=>{const d=noteDueInfo(n);return d&&d.days<0;}).length;
+        return stat(pn.length, od ? "งานค้าง · เลยกำหนด "+od : "งานรอดำเนินการ", od?"s-bad":pn.length?"s-warn":""); })() : ""}
     ${billStat()}
   </div>`;
 
@@ -6528,6 +6847,8 @@ function renderHome(){
       </div>
       <div class="case-appt">${right}</div>
     </div>`;
+
+  html += pendingNotesHTML();
 
   html += `<div class="section-label">นัดวันนี้ (${fmtDate(today)})</div>`;
   html += (todayList.length || evToday.length)
