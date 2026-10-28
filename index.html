@@ -4373,13 +4373,15 @@ function printCover(id){
   const red = splitCaseNo(c.redNumber);
 
   // ๑๐ บรรทัดนัดพิจารณา
-  const NFIRST = 5;   // สำนักงานกฎหมายสากล: หน้าแรกมีบรรทัดนัด ๕ บรรทัด (ตัวอักษรใหญ่ขึ้น)
-  const appts = (c.appointments||[]).slice(0,NFIRST);
-  const rest  = (c.appointments||[]).slice(NFIRST);
+  // สำนักงานกฎหมายสากล: หน้าแรกเริ่มที่ ๕ บรรทัดนัด แล้วตอนพิมพ์ระบบเพิ่มบรรทัดให้เต็มหน้าเอง
+  // (สร้างไว้ล่วงหน้า MAXL บรรทัด ซ่อนส่วนที่เกิน ตารางหน้า ๒ ก็สร้างทุกนัดไว้ แล้วตัดส่วนที่ขึ้นหน้าแรกแล้วออก)
+  const NFIRST = 5, MAXL = 30;
+  const allAppts = c.appointments||[];
+  const rest  = allAppts.slice(NFIRST);
   let apptLines = "";
-  for(let i=0;i<NFIRST;i++){
-    const a = appts[i];
-    apptLines += `<div class="ap"><span class="apn">${toThaiNum(i+1)}.</span>
+  for(let i=0;i<MAXL;i++){
+    const a = allAppts[i];
+    apptLines += `<div class="ap" data-i="${i}"${i>=NFIRST?' style="display:none"':''}><span class="apn">${toThaiNum(i+1)}.</span>
       <span class="apv">${a ? esc(coverApptLine(a)) : "&nbsp;"}</span></div>`;
   }
 
@@ -4560,7 +4562,7 @@ function printCover(id){
 
     <div class="ctr">นัดพิจารณา</div>
     ${apptLines}
-    ${rest.length?`<div style="font-size:15pt;line-height:1.1;text-align:right;">(ดูนัดที่ ${toThaiNum(NFIRST+1)} เป็นต้นไปในหน้าถัดไป — อีก ${toThaiNum(rest.length)} นัด)</div>`:""}
+    <div id="restNote" style="font-size:13pt;line-height:1.1;text-align:right;${rest.length?"":"display:none;"}">(ดูนัดที่ ${toThaiNum(NFIRST+1)} เป็นต้นไปในหน้าถัดไป — อีก ${toThaiNum(rest.length)} นัด)</div>
 
     <div class="r">
       <span class="lb">วันแถลงปิดสำนวน</span><span class="ln"></span>
@@ -4592,7 +4594,7 @@ function printCover(id){
       <div class="ht"><b>นัดพิจารณา (ต่อ)</b>
         <small>${esc(partiesDisplay(c))}</small>
         <small>เลขคดี ${esc(toThaiNum(c.caseNumber))} · เรื่องที่ ${esc(toThaiNum(c.seqNo||"—"))}</small>
-        <small>ต่อจากนัดที่ ${toThaiNum(NFIRST)} ในหน้าแรก</small>
+        <small id="contFrom">ต่อจากนัดที่ ${toThaiNum(NFIRST)} ในหน้าแรก</small>
       </div>
     </div>
     <div class="rule"></div>
@@ -4604,16 +4606,16 @@ function printCover(id){
       </tr></thead>
       <tbody>${(()=>{
         let out = "";
-        // นัดที่ ๕ เป็นต้นไป เติมจากข้อมูลจริง
-        rest.forEach((a,i)=>{
-          out += `<tr><td class="c">${toThaiNum(i+NFIRST+1)}</td>
-            <td>${esc(thaiFullDate(a.date))}${a.endDate&&a.endDate!==a.date?" – "+esc(thaiFullDate(a.endDate)):""}</td>
-            <td class="c">${esc(a.time||"")}</td>
-            <td>${esc(a.note||"")}</td><td></td></tr>`;
-        });
-        // เติมแถวว่างให้เต็มหน้า (ส่วนที่เกินหน้าจะถูกตัดออกอัตโนมัติตอนพิมพ์)
-        for(let i=rest.length;i<30;i++){
-          out += `<tr><td class="c">${toThaiNum(i+NFIRST+1)}</td><td></td><td></td><td></td><td></td></tr>`;
+        // ทุกนัดตามลำดับ (แถวที่ขึ้นหน้าแรกแล้วจะถูกลบตอนพิมพ์) + แถวว่างเผื่อ (ส่วนที่เกินหน้าถูกตัดอัตโนมัติ)
+        const upto = Math.max(allAppts.length, MAXL) + 30;
+        for(let i=0;i<upto;i++){
+          const a = allAppts[i], hide = i < NFIRST ? ' style="display:none"' : '';
+          out += a
+            ? `<tr data-i="${i}"${hide}><td class="c">${toThaiNum(i+1)}</td>
+                <td>${esc(thaiFullDate(a.date))}${a.endDate&&a.endDate!==a.date?" – "+esc(thaiFullDate(a.endDate)):""}</td>
+                <td class="c">${esc(a.time||"")}</td>
+                <td>${esc(a.note||"")}</td><td></td></tr>`
+            : `<tr data-i="${i}"${hide}><td class="c">${toThaiNum(i+1)}</td><td></td><td></td><td></td><td></td></tr>`;
         }
         return out;
       })()}</tbody>
@@ -4660,8 +4662,27 @@ function printCover(id){
         while(cs > 12 && main.scrollWidth > maxW + 1){ cs -= 0.5; court.style.fontSize = cs + "pt"; }
       }
 
-      // ๓) หน้าตารางนัดต่อ: ตัดแถวว่างท้ายตารางออกจนพอดี ๑ หน้า
+      // ๓) เพิ่มบรรทัดนัดในหน้าแรกจนเต็มหน้า (นัดจริงที่เคยอยู่หน้า ๒ จะขึ้นมาอยู่หน้าแรกแทน)
+      const lines = [...main.querySelectorAll(".ap[data-i]")];
+      const nAll = allAppts.length, note = d.getElementById("restNote");
+      let k = lines.filter(l=>l.style.display !== "none").length;
+      const updNote = ()=>{
+        if(!note) return;
+        const left = nAll - k;
+        note.style.display = left > 0 ? "" : "none";
+        note.textContent = left > 0 ? "(ดูนัดที่ " + toThaiNum(k+1) + " เป็นต้นไปในหน้าถัดไป — อีก " + toThaiNum(left) + " นัด)" : "";
+      };
+      updNote();
+      while(k < lines.length){
+        lines[k].style.display = ""; k++; updNote();
+        if(main.scrollHeight > maxH){ k--; lines[k].style.display = "none"; updNote(); break; }
+      }
+
+      // ๔) หน้าตารางนัดต่อ: ลบแถวนัดที่อยู่หน้าแรกแล้ว และตัดแถวว่างท้ายตารางจนพอดี ๑ หน้า
       const p2 = d.querySelector(".page2"), tb = p2 && p2.querySelector("tbody");
+      const cf = d.getElementById("contFrom");
+      if(cf) cf.textContent = "ต่อจากนัดที่ " + toThaiNum(k) + " ในหน้าแรก";
+      if(tb) [...tb.rows].forEach(tr=>{ if(Number(tr.dataset.i) < k) tr.remove(); });
       if(p2 && tb){
         p2.style.width = maxW + "px";
         const isBlank = tr => [...tr.cells].slice(1).every(td => !td.textContent.trim());
