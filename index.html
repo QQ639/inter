@@ -4486,6 +4486,8 @@ function printCover(id){
     .courtblock{justify-content:flex-start !important;}
     .courtgrid .val{white-space:nowrap;}
     .ap{align-items:baseline;}
+    /* ส่วนหัว: ที่อยู่ ๑ บรรทัด เบอร์ ๑ บรรทัด (ย่อเองถ้ายาวเกิน) */
+    .ht small{white-space:nowrap;}
   </style></head><body>
   <div class="wm"><img src="${logo}"></div>
   <div class="wrap">
@@ -4550,15 +4552,6 @@ function printCover(id){
       <span class="lb">ทนายฝ่าย</span><span class="ln s">${esc(c.side||"")}</span>
     </div>
     <div class="r">
-      <span class="lb">ฟ้องวันที่</span><span class="ln d">${esc(thaiFullDate(c.filedDate))}</span>
-      <span class="lb">วันยื่นบัญชีพยาน</span><span class="ln d">${esc(thaiFullDate(c.witnessDate))}</span>
-    </div>
-    <div class="r">
-      <span class="lb">รายงานการเดินหมาย</span><span class="box"></span><span>ปิดหมาย</span>
-      <span class="box"></span><span>รับเอง</span>
-      <span class="lb">วันที่</span><span class="ln">${esc(c.summonsNote||"")}</span>
-    </div>
-    <div class="r">
       <span class="lb">วันยื่นคำให้การจำเลย</span><span class="ln d">${esc(thaiFullDate(c.answerDate))}</span>
     </div>
     <div class="r">
@@ -4570,7 +4563,7 @@ function printCover(id){
     ${rest.length?`<div style="font-size:15pt;line-height:1.1;text-align:right;">(ดูนัดที่ ${toThaiNum(NFIRST+1)} เป็นต้นไปในหน้าถัดไป — อีก ${toThaiNum(rest.length)} นัด)</div>`:""}
 
     <div class="r">
-      <span class="lb">แถลงปิดวันแถลงปิดสำนวน</span><span class="ln"></span>
+      <span class="lb">วันแถลงปิดสำนวน</span><span class="ln"></span>
     </div>
     <div class="r">
       <span class="lb">วันฟังคำพิพากษาศาลชั้นต้น</span><span class="ln"></span>
@@ -4581,7 +4574,6 @@ function printCover(id){
     <div class="r"><span class="lb">คำพิพากษาศาลฎีกา</span><span class="ln">${esc(c.verdict3||"")}</span></div>
     <div class="r">
       <span class="lb">ทนายความเจ้าของสำนวน</span><span class="ln">${esc(c.lawyer||"").replace(/\//g,"/&#8203;")}</span>
-      <span class="lb">เบอร์ติดต่อ</span><span class="ln">${esc(toThaiNum(c.lawyerPhone||""))}</span>
     </div>
     <div class="r">
       <span class="lb">ชื่อลูกความ</span>
@@ -4642,6 +4634,14 @@ function printCover(id){
       const maxH = probe.offsetHeight, maxW = probe.offsetWidth;
       probe.remove();
       main.style.width = maxW + "px";
+
+      // ๐) ส่วนหัว: ย่อบรรทัดที่อยู่/เบอร์ ให้อยู่บรรทัดเดียวพอดีความกว้าง
+      const head = d.querySelector(".main .head");
+      if(head) d.querySelectorAll(".main .head .ht small").forEach(sm=>{
+        let hs = 15;
+        sm.style.fontSize = hs + "pt";
+        while(hs > 9 && head.scrollWidth > maxW + 1){ hs -= 0.5; sm.style.fontSize = hs + "pt"; }
+      });
 
       // ๑) หาขนาดตัวอักษรเนื้อหาที่ใหญ่ที่สุดที่ยังพอดีหน้า (ชื่อศาลยังไม่นับ)
       const court = d.querySelector(".courtgrid .val");
