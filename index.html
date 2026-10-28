@@ -4468,8 +4468,7 @@ function printCover(id){
     /* ===== สำนักงานกฎหมายสากล: ส่วนหัวขนาดเดิม เนื้อหาใหญ่ขึ้น ๑.๕ เท่า ===== */
     body{font-size:23pt;line-height:1.25;}
     .head{font-size:15.5pt;line-height:1.38;}
-    .r{margin:3px 0;gap:6px;}
-    .ap{margin:3px 0;}
+    .r{margin:1px 0;gap:6px;}
     .ln,.prow .pv,.apv{min-height:30px;padding:0 4px;}
     .ln.s{flex:0 0 130px;} .ln.m{flex:0 0 220px;} .ln.m.d{min-width:200px;}
     .party .kw{width:104px;} .party .pp{gap:4px;}
@@ -4478,8 +4477,7 @@ function printCover(id){
     .apn{width:36px;}
     .ctr{margin:3px 0 0;}
     .qrbox div{font-size:13pt;}
-    .t2 th,.t2 td{font-size:19pt;height:40px;padding:3px 6px;}
-    .t2 td:nth-child(2){white-space:nowrap;}
+    .t2 th,.t2 td{font-size:21pt;height:44px;padding:3px 6px;}
   </style></head><body>
   <div class="wm"><img src="${logo}"></div>
   <div class="wrap">
@@ -4561,7 +4559,7 @@ function printCover(id){
 
     <div class="ctr">นัดพิจารณา</div>
     ${apptLines}
-    ${rest.length?`<div style="font-size:15pt;line-height:1.1;text-align:right;">(ดูนัดที่ ${toThaiNum(NFIRST+1)} เป็นต้นไปในหน้าถัดไป — อีก ${toThaiNum(rest.length)} นัด)</div>`:""}
+    ${rest.length?`<div style="font-size:17pt;text-align:right;">(ดูนัดที่ ${toThaiNum(NFIRST+1)} เป็นต้นไปในหน้าถัดไป — อีก ${toThaiNum(rest.length)} นัด)</div>`:""}
 
     <div class="r">
       <span class="lb">แถลงปิดวันแถลงปิดสำนวน</span><span class="ln"></span>
@@ -4613,8 +4611,8 @@ function printCover(id){
             <td class="c">${esc(a.time||"")}</td>
             <td>${esc(a.note||"")}</td><td></td></tr>`;
         });
-        // เติมแถวว่างให้เต็มหน้า (รวม ๒๒ แถว)
-        for(let i=rest.length;i<22;i++){
+        // เติมแถวว่างให้เต็มหน้า (ตัวอักษรใหญ่ขึ้น จึงเหลือ ๑๖ แถวต่อหน้า)
+        for(let i=rest.length;i<16;i++){
           out += `<tr><td class="c">${toThaiNum(i+NFIRST+1)}</td><td></td><td></td><td></td><td></td></tr>`;
         }
         return out;
