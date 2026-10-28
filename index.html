@@ -4467,7 +4467,7 @@ function printCover(id){
     .t2 td.c{text-align:center;}
 
     /* ===== สำนักงานกฎหมายสากล: ส่วนหัวขนาดเดิม เนื้อหาใหญ่ขึ้น ๑.๕ เท่า ===== */
-    body{font-size:23pt;line-height:1.2;}
+    body{font-size:15pt;line-height:1.3;}
     .head{font-size:15.5pt;line-height:1.38;}
     .r{margin:2px 0;gap:6px;}
     .ap{margin:2px 0;}
@@ -4479,7 +4479,7 @@ function printCover(id){
     .apn{width:36px;}
     .ctr{margin:3px 0 0;}
     .qrbox div{font-size:13pt;}
-    .t2 th,.t2 td{font-size:19pt;height:40px;padding:3px 6px;}
+    .t2 th,.t2 td{font-size:15pt;height:32px;padding:3px 6px;}
     .t2 td:nth-child(2){white-space:nowrap;}
     /* ชื่อศาลยาวได้จนสุดขอบกระดาษ ไม่ตัดบรรทัด */
     .qrspacer{display:none;}
@@ -4611,8 +4611,8 @@ function printCover(id){
             <td class="c">${esc(a.time||"")}</td>
             <td>${esc(a.note||"")}</td><td></td></tr>`;
         });
-        // เติมแถวว่างให้เต็มหน้า (รวม ๒๒ แถว)
-        for(let i=rest.length;i<22;i++){
+        // เติมแถวว่างให้เต็มหน้า (ส่วนที่เกินหน้าจะถูกตัดออกอัตโนมัติตอนพิมพ์)
+        for(let i=rest.length;i<30;i++){
           out += `<tr><td class="c">${toThaiNum(i+NFIRST+1)}</td><td></td><td></td><td></td><td></td></tr>`;
         }
         return out;
@@ -4643,10 +4643,12 @@ function printCover(id){
         while(hs > 9 && head.scrollWidth > maxW + 1){ hs -= 0.5; sm.style.fontSize = hs + "pt"; }
       });
 
-      // ๑) หาขนาดตัวอักษรเนื้อหาที่ใหญ่ที่สุดที่ยังพอดีหน้า (ชื่อศาลยังไม่นับ)
+      // ๑) ขนาดตัวอักษรเนื้อหา — ถ้ายังล้นหน้า ค่อยลดลงจนพอดี (ชื่อศาลยังไม่นับ)
       const court = d.querySelector(".courtgrid .val");
       if(court) court.style.whiteSpace = "normal";
-      let size = 23;
+      // ใช้ขนาดเท่าบรรทัดเบอร์โทรในส่วนหัว เหลือที่ไว้รองรับชื่อคู่ความยาวหรือมีคู่ความกลาง
+      const phone = d.querySelectorAll(".main .head .ht small");
+      let size = phone.length ? (parseFloat(phone[phone.length-1].style.fontSize) || 15) : 15;
       const over = ()=> main.scrollHeight > maxH || main.scrollWidth > maxW + 1;
       d.body.style.fontSize = size + "pt";
       while(size > 14 && over()){ size -= 0.5; d.body.style.fontSize = size + "pt"; }
