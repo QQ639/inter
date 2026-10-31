@@ -5766,7 +5766,7 @@ function buildQuoteBody(data){
       <tfoot>
         ${data.vat ? `<tr><td colspan="2" style="text-align:right;">รวมเป็นเงิน</td><td class="num">${fmtMoney(subtotal)}</td></tr>
         <tr><td colspan="2" style="text-align:right;">ภาษีมูลค่าเพิ่ม 7%</td><td class="num">${fmtMoney(vat)}</td></tr>` : ``}
-        <tr><td colspan="2" style="text-align:right;">รวมเป็นเงินทั้งสิ้น</td><td class="num">${fmtMoney(grand)} บาท</td></tr>
+        <tr><td colspan="2" style="text-align:right;">รวมเป็นเงินทั้งสิ้น</td><td class="num">${fmtMoney(grand)}</td></tr>
       </tfoot>
     </table>
     ${data.terms ? `<div class="terms"><b>เงื่อนไขการชำระเงิน</b><br>${esc(data.terms)}</div>` : ``}
@@ -5857,8 +5857,8 @@ function buildReceiptBody(data){
       <tfoot>
         ${wht ? `<tr><td colspan="2" style="text-align:right;">รวมเป็นเงิน</td><td class="num">${fmtMoney(total)}</td></tr>
         <tr><td colspan="2" style="text-align:right;font-weight:400;">หัก ภาษีเงินได้ ณ ที่จ่าย ๓%</td><td class="num" style="font-weight:400;">${fmtMoney(whtAmt)}</td></tr>
-        <tr><td colspan="2" style="text-align:right;">ยอดรับสุทธิ</td><td class="num">${fmtMoney(net)} บาท</td></tr>`
-        : `<tr><td colspan="2" style="text-align:right;">รวมเป็นเงินทั้งสิ้น</td><td class="num">${fmtMoney(total)} บาท</td></tr>`}
+        <tr><td colspan="2" style="text-align:right;">ยอดรับสุทธิ</td><td class="num">${fmtMoney(net)}</td></tr>`
+        : `<tr><td colspan="2" style="text-align:right;">รวมเป็นเงินทั้งสิ้น</td><td class="num">${fmtMoney(total)}</td></tr>`}
       </tfoot>
     </table>
     <div class="terms" style="margin-top:6px;">(<b>${esc(thaiBahtText(total))}</b>)${wht ? `<br>ยอดรับสุทธิ (<b>${esc(thaiBahtText(net))}</b>) พร้อมหนังสือรับรองการหักภาษี ณ ที่จ่าย ${fmtMoney(whtAmt)} บาท` : ``}</div>
@@ -5950,7 +5950,7 @@ function buildLawyerFeeBody(data){
     <table>
       <thead><tr><th style="width:8%">ที่</th><th>รายการ</th><th style="width:30%">จำนวนเงิน (บาท)</th></tr></thead>
       <tbody>${rows}</tbody>
-      <tfoot><tr><td colspan="2" style="text-align:right;">รวมเป็นเงินทั้งสิ้น</td><td class="num">${fmtMoney(total)} บาท</td></tr></tfoot>
+      <tfoot><tr><td colspan="2" style="text-align:right;">รวมเป็นเงินทั้งสิ้น</td><td class="num">${fmtMoney(total)}</td></tr></tfoot>
     </table>
     <div class="terms" style="margin-top:10px;">(<b>${esc(thaiBahtText(total))}</b>)</div>
     ${data.note ? `<div class="terms"><b>หมายเหตุ</b><br>${esc(data.note).replace(/\n/g,"<br>")}</div>` : ``}
@@ -6035,7 +6035,7 @@ function buildBillingBody(data){
       <tfoot>
         ${data.vat ? `<tr><td colspan="2" style="text-align:right;">รวมเป็นเงิน</td><td class="num">${fmtMoney(t.subtotal)}</td></tr>
         <tr><td colspan="2" style="text-align:right;">ภาษีมูลค่าเพิ่ม 7%</td><td class="num">${fmtMoney(t.vatAmount)}</td></tr>` : ``}
-        <tr><td colspan="2" style="text-align:right;">จำนวนเงินที่ต้องชำระ</td><td class="num">${fmtMoney(t.total)} บาท</td></tr>
+        <tr><td colspan="2" style="text-align:right;">จำนวนเงินที่ต้องชำระ</td><td class="num">${fmtMoney(t.total)}</td></tr>
       </tfoot>
     </table>
     <div class="terms" style="margin-top:10px;">(<b>${esc(thaiBahtText(t.total))}</b>)</div>
