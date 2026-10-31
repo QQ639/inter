@@ -971,7 +971,7 @@
       <div class="dfield"><label>เงื่อนไขการชำระเงิน (ไม่บังคับ)</label><textarea id="q-terms" style="min-height:50px;" placeholder="เช่น ชำระมัดจำ 50% ส่วนที่เหลือชำระเมื่องานแล้วเสร็จ"></textarea></div>
     </div>
     <div class="drow">
-      <div class="dfield"><label>ทนายผู้เสนอราคา</label><input id="q-lawyer" value="นภัสนันท์ อภิรมย์ศศิธร"></div>
+      <div class="dfield"><label>ทนายผู้เสนอราคา</label><input id="q-lawyer" value="นางสาวนภัสนันท์ อภิรมย์ศศิธร"></div>
     </div>
     <div class="row-end">
       <button class="btn ghost sm" onclick="closeDocModal('quote')">ยกเลิก</button>
@@ -1037,7 +1037,7 @@
       </div>
     </div>
     <div class="drow">
-      <div class="dfield"><label>ผู้รับเงิน / ทนายผู้ออกใบเสร็จ</label><input id="r-lawyer" value="นภัสนันท์ อภิรมย์ศศิธร"></div>
+      <div class="dfield"><label>ผู้รับเงิน / ทนายผู้ออกใบเสร็จ</label><input id="r-lawyer" value="นางสาวนภัสนันท์ อภิรมย์ศศิธร"></div>
       <div class="dfield"><label>เลขประจำตัวผู้เสียภาษีผู้ออกใบเสร็จ</label><input id="r-issuer-tax" inputmode="numeric" placeholder="13 หลัก (จำไว้ให้ครั้งต่อไป)"></div>
     </div>
     <div class="row-end">
@@ -1091,7 +1091,7 @@
       <div class="dfield"><label>หมายเหตุ (ไม่บังคับ)</label><textarea id="b-note" style="min-height:50px;" placeholder="เช่น กรุณาชำระภายในวันที่กำหนด หากมีข้อสงสัยติดต่อ 080-276-7555"></textarea></div>
     </div>
     <div class="drow">
-      <div class="dfield"><label>ผู้วางบิล</label><input id="b-lawyer" value="นภัสนันท์ อภิรมย์ศศิธร"></div>
+      <div class="dfield"><label>ผู้วางบิล</label><input id="b-lawyer" value="นางสาวนภัสนันท์ อภิรมย์ศศิธร"></div>
     </div>
     <div class="row-end">
       <button class="btn ghost sm" onclick="closeDocModal('billing')">ยกเลิก</button>
@@ -1242,7 +1242,7 @@
       <div class="dfield"><label>หมายเหตุ (ไม่บังคับ)</label><textarea id="lf-note" style="min-height:50px;"></textarea></div>
     </div>
     <div class="drow">
-      <div class="dfield"><label>ผู้จ่ายเงิน (ลงชื่อฝั่งสำนักงาน)</label><input id="lf-paidby" value="นภัสนันท์ อภิรมย์ศศิธร"></div>
+      <div class="dfield"><label>ผู้จ่ายเงิน (ลงชื่อฝั่งสำนักงาน)</label><input id="lf-paidby" value="นางสาวนภัสนันท์ อภิรมย์ศศิธร"></div>
     </div>
     <div class="row-end">
       <button class="btn ghost sm" onclick="closeDocModal('lawyerfee')">ยกเลิก</button>
@@ -6700,7 +6700,7 @@ function buildContractBody(data){
     <p style="text-indent:2em;margin:0 0 6px;">
       สัญญาฉบับนี้ทำขึ้นระหว่าง ${esc(data.client)}
       ${data.address ? "ที่อยู่ "+esc(data.address) : ""}
-      ต่อไปจะเรียกว่า <b>"ผู้ว่าจ้าง"</b> ฝ่ายหนึ่ง กับนภัสนันท์ อภิรมย์ศศิธร
+      ต่อไปจะเรียกว่า <b>"ผู้ว่าจ้าง"</b> ฝ่ายหนึ่ง กับนางสาวนภัสนันท์ อภิรมย์ศศิธร
       ซึ่งต่อไปจะเรียกว่า <b>"ผู้รับจ้าง"</b> อีกฝ่ายหนึ่ง
     </p>
     <p style="text-indent:2em;margin:0 0 6px;">คู่สัญญาทั้งสองฝ่ายตกลงกันมีข้อความดังต่อไปนี้</p>
@@ -6742,7 +6742,7 @@ function buildContractBody(data){
 
     <div style="margin-top:30px;display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;font-size:14pt;">
       <div style="width:45%;text-align:center;">ลงชื่อ .............................................. ผู้ว่าจ้าง<br>( ${esc(data.client)} )</div>
-      <div style="width:45%;text-align:center;">ลงชื่อ .............................................. ผู้รับจ้าง<br>( นภัสนันท์ อภิรมย์ศศิธร )</div>
+      <div style="width:45%;text-align:center;">ลงชื่อ .............................................. ผู้รับจ้าง<br>( นางสาวนภัสนันท์ อภิรมย์ศศิธร )</div>
       <div style="width:45%;text-align:center;margin-top:16px;">ลงชื่อ .............................................. พยาน<br>( .............................................. )</div>
       <div style="width:45%;text-align:center;margin-top:16px;">ลงชื่อ .............................................. พยาน<br>( .............................................. )</div>
     </div>
@@ -6767,7 +6767,7 @@ async function confirmContract(btn){
   const note      = document.getElementById("k-note").value.trim();
   const appealFee = parseFloat(document.getElementById("k-appeal").value) || 0;
   const dikaFee   = parseFloat(document.getElementById("k-dika").value) || 0;
-  const lawyer    = "นภัสนันท์ อภิรมย์ศศิธร";
+  const lawyer    = "นางสาวนภัสนันท์ อภิรมย์ศศิธร";
 
   // รวบรวมงวดที่กรอกจริง (ต้องมีจำนวนเงิน > 0 ถึงนับ) แล้วเรียงเลขใหม่ให้ต่อเนื่อง ไม่เว้นช่องว่าง
   const installments = [];
