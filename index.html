@@ -5542,6 +5542,13 @@ document.querySelectorAll("#r-bank-seg button").forEach(btn=>{
   });
 });
 
+/** แถวยอดรวมในตาราง — ยอดเป็นตัวหนังสืออยู่ซ้าย ป้ายชื่อยอดอยู่ขวา อยู่ในตารางแถวเดียวกัน */
+function totalRowHtml(label, amount){
+  return `<tr><td colspan="2"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;">
+    <span style="font-weight:400;font-size:88%;line-height:1.15;">(${esc(thaiBahtText(amount))})</span><span style="white-space:nowrap;">${label}</span></div></td>
+    <td class="num">${fmtMoney(amount)}</td></tr>`;
+}
+
 /** ภาษีหัก ณ ที่จ่าย 3% ปัดทศนิยม 2 ตำแหน่ง */
 function whtOf(amount){ return Math.round(amount * 3) / 100; }
 
@@ -5766,7 +5773,7 @@ function buildQuoteBody(data){
       <tfoot>
         ${data.vat ? `<tr><td colspan="2" style="text-align:right;">รวมเป็นเงิน</td><td class="num">${fmtMoney(subtotal)}</td></tr>
         <tr><td colspan="2" style="text-align:right;">ภาษีมูลค่าเพิ่ม 7%</td><td class="num">${fmtMoney(vat)}</td></tr>` : ``}
-        <tr><td colspan="2" style="text-align:right;">รวมเป็นเงินทั้งสิ้น</td><td class="num">${fmtMoney(grand)}</td></tr>
+        ${totalRowHtml("รวมเป็นเงินทั้งสิ้น", grand)}
       </tfoot>
     </table>
     ${data.terms ? `<div class="terms"><b>เงื่อนไขการชำระเงิน</b><br>${esc(data.terms)}</div>` : ``}
@@ -5855,13 +5862,12 @@ function buildReceiptBody(data){
       <thead><tr><th style="width:8%">ที่</th><th>รายการ</th><th style="width:30%">จำนวนเงิน (บาท)</th></tr></thead>
       <tbody>${rows}</tbody>
       <tfoot>
-        ${wht ? `<tr><td colspan="2" style="text-align:right;">รวมเป็นเงิน</td><td class="num">${fmtMoney(total)}</td></tr>
+        ${wht ? `${totalRowHtml("รวมเป็นเงิน", total)}
         <tr><td colspan="2" style="text-align:right;font-weight:400;">หัก ภาษีเงินได้ ณ ที่จ่าย ๓%</td><td class="num" style="font-weight:400;">${fmtMoney(whtAmt)}</td></tr>
-        <tr><td colspan="2" style="text-align:right;">ยอดรับสุทธิ</td><td class="num">${fmtMoney(net)}</td></tr>`
-        : `<tr><td colspan="2" style="text-align:right;">รวมเป็นเงินทั้งสิ้น</td><td class="num">${fmtMoney(total)}</td></tr>`}
+        ${totalRowHtml("ยอดรับสุทธิ", net)}`
+        : totalRowHtml("รวมเป็นเงินทั้งสิ้น", total)}
       </tfoot>
     </table>
-    <div class="terms" style="margin-top:6px;">(<b>${esc(thaiBahtText(total))}</b>)${wht ? `<br>ยอดรับสุทธิ (<b>${esc(thaiBahtText(net))}</b>) พร้อมหนังสือรับรองการหักภาษี ณ ที่จ่าย ${fmtMoney(whtAmt)} บาท` : ``}</div>
     <div class="terms" style="font-size:11pt;margin-top:4px;">${data.issuerTaxId ? `เลขประจำตัวผู้เสียภาษีผู้ออกใบเสร็จ ${esc(data.issuerTaxId)} · ` : ``}ผู้ออกใบเสร็จมิได้จดทะเบียนภาษีมูลค่าเพิ่ม</div>
     <div class="signblock"><div class="line"></div><div class="who">( ${esc(data.lawyer)} ) ผู้รับเงิน</div></div>
   `;
@@ -5927,6 +5933,9 @@ function buildLawyerFeeBody(data){
     </tr>`).join("");
   const total = data.items.reduce((s,it)=>s+it.amount,0);
   const caseBits = [data.caseNo ? "คดีหมายเลข "+esc(data.caseNo) : "", data.court ? esc(data.court) : ""].filter(Boolean).join(" ");
+  // ชื่อคน/ชื่อบริษัทห้ามตัดกลางคำ (เบราว์เซอร์ตัดคำไทยในชื่อเฉพาะผิด เช่น "จัน|ทร์มะณี") — ยาวเกินบรรทัดค่อยปล่อยให้ตัด
+  const nb = t => { t = String(t||""); return t.length <= 45 ? `<span style="white-space:nowrap;">${esc(t)}</span>` : esc(t); };
+  const partiesHtml = String(data.parties||"").split(" · ").filter(Boolean).map(nb).join(" ");
   return `
     <div class="head">
       <img src="${document.querySelector('header.top .logo').src}">
@@ -5934,25 +5943,25 @@ function buildLawyerFeeBody(data){
     </div>
     <div class="doctitle">ใบรับเงินค่าทำคดี</div>
     <div class="meta">
-      <div><b>ได้รับเงินจาก:</b><br>${esc(data.payer)}</div>
+      <div></div>
       <div style="text-align:right;">
         ${data.docNo ? "เลขที่ "+esc(data.docNo)+"<br>" : ""}
         วันที่ ${docDateThai(data.date)}<br>
         วิธีชำระ ${esc(data.method)}
       </div>
     </div>
+    <div class="oneline" data-minscale="0.6" style="font-size:13.5pt;margin:-2px 0 6px;"><b>ได้รับเงินจาก:</b> ${esc(data.payer)}</div>
     <div class="terms" style="white-space:normal;color:#000;line-height:1.3;margin:0 0 8px;">
-      &emsp;&emsp;ข้าพเจ้า ${esc(data.lawyer)} ทนายความ${data.license ? " ใบอนุญาตเลขที่ "+esc(data.license) : ""}
-      ได้รับเงินค่าทำคดีจาก ${esc(data.payer)}
-      ${caseBits ? "ใน"+caseBits : ""}${data.parties ? " ระหว่าง "+esc(data.parties) : ""}
+      &emsp;&emsp;ข้าพเจ้า ${nb(data.lawyer)} ทนายความ${data.license ? " ใบอนุญาตเลขที่ "+esc(data.license) : ""}
+      ได้รับเงินค่าทำคดีจาก ${nb(data.payer)}
+      ${caseBits ? "ใน"+caseBits : ""}${partiesHtml ? " ระหว่าง "+partiesHtml : ""}
       ตามรายการดังต่อไปนี้ไว้ถูกต้องครบถ้วนแล้ว
     </div>
     <table>
       <thead><tr><th style="width:8%">ที่</th><th>รายการ</th><th style="width:30%">จำนวนเงิน (บาท)</th></tr></thead>
       <tbody>${rows}</tbody>
-      <tfoot><tr><td colspan="2" style="text-align:right;">รวมเป็นเงินทั้งสิ้น</td><td class="num">${fmtMoney(total)}</td></tr></tfoot>
+      <tfoot>${totalRowHtml("รวมเป็นเงินทั้งสิ้น", total)}</tfoot>
     </table>
-    <div class="terms" style="margin-top:10px;">(<b>${esc(thaiBahtText(total))}</b>)</div>
     ${data.note ? `<div class="terms"><b>หมายเหตุ</b><br>${esc(data.note).replace(/\n/g,"<br>")}</div>` : ``}
     <div class="signblock2">
       <div class="signcol">
@@ -6035,10 +6044,9 @@ function buildBillingBody(data){
       <tfoot>
         ${data.vat ? `<tr><td colspan="2" style="text-align:right;">รวมเป็นเงิน</td><td class="num">${fmtMoney(t.subtotal)}</td></tr>
         <tr><td colspan="2" style="text-align:right;">ภาษีมูลค่าเพิ่ม 7%</td><td class="num">${fmtMoney(t.vatAmount)}</td></tr>` : ``}
-        <tr><td colspan="2" style="text-align:right;">จำนวนเงินที่ต้องชำระ</td><td class="num">${fmtMoney(t.total)}</td></tr>
+        ${totalRowHtml("จำนวนเงินที่ต้องชำระ", t.total)}
       </tfoot>
     </table>
-    <div class="terms" style="margin-top:10px;">(<b>${esc(thaiBahtText(t.total))}</b>)</div>
     ${data.payInfo ? `<div class="terms"><b>ช่องทางชำระเงิน</b><br>${esc(data.payInfo).replace(/\n/g,"<br>")}</div>` : ``}
     ${data.note ? `<div class="terms"><b>หมายเหตุ</b><br>${esc(data.note).replace(/\n/g,"<br>")}</div>` : ``}
     <div class="signblock2">
