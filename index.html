@@ -1015,6 +1015,13 @@
       <div class="dfield"><label>ได้รับเงินจาก</label><input id="r-payer" placeholder="เช่น นายสมชาย ใจดี"></div>
     </div>
     <div class="drow">
+      <div class="dfield"><label>ที่อยู่ผู้ชำระ (ไม่บังคับ — บริษัทมักขอใช้ลงบัญชี)</label><textarea id="r-payer-addr" style="min-height:50px;"></textarea></div>
+    </div>
+    <div class="drow">
+      <div class="dfield"><label>เลขประจำตัวผู้เสียภาษีผู้ชำระ (ไม่บังคับ)</label><input id="r-payer-tax" inputmode="numeric" placeholder="13 หลัก"></div>
+      <div class="dfield"><label>สาขา (ไม่บังคับ)</label><input id="r-payer-branch" placeholder="เช่น สำนักงานใหญ่"></div>
+    </div>
+    <div class="drow">
       <div class="dfield">
         <label>รายการ และ จำนวนเงิน</label>
         <div class="itemrows" id="r-rows" data-ph="เช่น ค่าธรรมเนียมทนายความ งวดที่ 1"></div>
@@ -1025,7 +1032,13 @@
       </div>
     </div>
     <div class="drow">
+      <div class="dfield"><label class="chk"><input type="checkbox" id="r-wht" onchange="updateItemRowsTotal('r')"> ผู้ชำระหักภาษี ณ ที่จ่าย 3% (ค่าวิชาชีพอิสระ)</label>
+        <div class="items-hint">ติ๊กเมื่อจ่ายโดยบริษัท/นิติบุคคล — ใบเสร็จจะแสดงยอดเต็ม ภาษีที่ถูกหัก และยอดรับสุทธิ ให้ตรงกับหนังสือรับรอง 50 ทวิ</div>
+      </div>
+    </div>
+    <div class="drow">
       <div class="dfield"><label>ผู้รับเงิน / ทนายผู้ออกใบเสร็จ</label><input id="r-lawyer" value="นภัสนันท์ อภิรมย์ศศิธร"></div>
+      <div class="dfield"><label>เลขประจำตัวผู้เสียภาษีผู้ออกใบเสร็จ</label><input id="r-issuer-tax" inputmode="numeric" placeholder="13 หลัก (จำไว้ให้ครั้งต่อไป)"></div>
     </div>
     <div class="row-end">
       <button class="btn ghost sm" onclick="closeDocModal('receipt')">ยกเลิก</button>
@@ -5443,7 +5456,7 @@ function receiptFromBilling(idx){
   if(owed <= 0){ toast("ใบวางบิลนี้เก็บครบแล้ว"); return; }
 
   closeDocModal("history");
-  clearDocForm("r", ["payer"]);
+  clearDocForm("r", ["payer","payer-addr","payer-tax","payer-branch","wht"]);
   document.getElementById("r-date").value = todayISO();
   syncDatePicker(document.getElementById("r-date"));
   document.getElementById("r-payer").value = b.client || "";
@@ -5468,6 +5481,10 @@ function openDocModal(type){
   }
   if(["quote","receipt","billing","contract","lawyerfee"].includes(type)) fillCasePickers();
   ["q","r","lf"].forEach(pfx=>{ const b=document.getElementById(pfx+"-rows"); if(b && !b.children.length) resetItemRows(pfx); });
+  if(type === "receipt"){
+    const it = document.getElementById("r-issuer-tax");
+    if(it && !it.value){ try{ it.value = localStorage.getItem("receiptIssuerTaxId") || ""; }catch(e){} }
+  }
   bg.classList.add("show");
   if(type === "history") loadDocHistory(currentHistTab);
 }
@@ -5525,6 +5542,9 @@ document.querySelectorAll("#r-bank-seg button").forEach(btn=>{
   });
 });
 
+/** ภาษีหัก ณ ที่จ่าย 3% ปัดทศนิยม 2 ตำแหน่ง */
+function whtOf(amount){ return Math.round(amount * 3) / 100; }
+
 /* ---------- ช่องรายการแยก (รายการ | จำนวนเงิน) ใช้กับใบเสนอราคา / ใบเสร็จ / ใบรับเงินค่าทำคดี ---------- */
 function addItemRow(pfx, label, amount){
   const box = document.getElementById(pfx+"-rows");
@@ -5557,7 +5577,10 @@ function updateItemRowsTotal(pfx){
   const el = document.getElementById(pfx+"-rows-total");
   if(!el) return;
   const items = getItemRows(pfx) || [];
-  el.textContent = "รวม " + fmtMoney(items.reduce((t,it)=>t+it.amount,0)) + " บาท";
+  const sum = items.reduce((t,it)=>t+it.amount,0);
+  const wht = pfx === "r" && document.getElementById("r-wht") && document.getElementById("r-wht").checked;
+  el.textContent = "รวม " + fmtMoney(sum) + " บาท" +
+    (wht ? ` · หัก 3% ${fmtMoney(whtOf(sum))} · รับสุทธิ ${fmtMoney(sum - whtOf(sum))} บาท` : "");
 }
 /** ล้างแล้วใส่รายการใหม่ (ถ้าไม่ส่ง list มา จะเหลือแถวว่าง 1 แถว) */
 function resetItemRows(pfx, list){
@@ -5615,7 +5638,7 @@ function docDateThai(iso){
  * @param {object} [opts]    {watermark:false} = ไม่ต้องใส่ลายน้ำ (ใช้กับรายงานภายใน)
  */
 const FIN_DOC_FONT_SCALE = 1.5;   // ขนาดอักษรเอกสารการเงิน (ใบเสนอราคา/ใบเสร็จ/ใบวางบิล/หนังสือทวงถาม/ใบรับเงินค่าทำคดี)
-const CONTRACT_FONT_SCALE = 1.5;  // ขนาดอักษรสัญญาจ้างทำของ (1 = ขนาดเดิม)
+const CONTRACT_FONT_SCALE = 1;  // ขนาดอักษรสัญญาจ้างทำของ (1 = ขนาดเดิม)
 /** คูณขนาดตัวอักษรหน่วย pt ทุกจุดใน html/css ด้วย k */
 function scalePt(html, k){
   if(!k || k === 1) return html;
@@ -5631,23 +5654,25 @@ function openDocPrintWindow(title, bodyHtml, opts){
   if(!w){ toast("เบราว์เซอร์บล็อกหน้าต่างใหม่ — อนุญาต popup แล้วลองใหม่"); return; }
   w.document.write(`<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
   <title>${title}</title>
-  <style>${scalePt(`    @page{ size:A4; margin:18mm 20mm; }
+  <style>${scalePt(`    @page{ size:A4; margin:8mm 18mm 12mm; }
     *{box-sizing:border-box;}
-    body{font-family:"TH Sarabun New","Sarabun","Angsana New",sans-serif;font-size:16pt;color:#000;margin:0;line-height:1.5;}
+    body{font-family:"TH Sarabun New","Sarabun","Angsana New",sans-serif;font-size:16pt;color:#000;margin:0;line-height:1.2;}
     /* ---- หัวกระดาษ ----
        ความสูงหัวกระดาษถูกกำหนดโดยโลโก้ 60px (min-height) ไม่ใช่ตัวอักษร
        ชื่อสำนักงานขยายจาก 18pt เป็น 22pt แต่บีบ line-height ลงเหลือ 1.05
        ทำให้กล่องข้อความยังเตี้ยกว่า 60px เท่าเดิม พื้นที่หัวกระดาษจึงไม่ขยับ */
-    .head{display:flex;align-items:center;gap:16px;min-height:100px;
-          border-bottom:2px solid #2b3488;padding-bottom:10px;margin-bottom:16px;}
-    .head img{width:100px;height:100px;object-fit:contain;flex:none;}
+    .head{display:flex;align-items:center;gap:14px;min-height:90px;
+          border-bottom:2px solid #2b3488;padding-bottom:6px;margin-bottom:8px;}
+    .head img{width:90px;height:90px;object-fit:contain;flex:none;}
     .head .office{flex:1;min-width:0;font-weight:700;font-size:22pt;line-height:1.05;}
-    .head .office small{display:block;font-weight:400;font-size:12pt;line-height:1.25;color:#444;}
-    .doctitle{text-align:center;font-size:20pt;font-weight:700;margin:6px 0 16px;letter-spacing:2px;}
-    .meta{display:flex;justify-content:space-between;font-size:13.5pt;margin-bottom:14px;}
-    .meta div{line-height:1.7;}
-    table{width:100%;border-collapse:collapse;margin-top:6px;}
-    th,td{border:1px solid #999;padding:7px 10px;font-size:13.5pt;}
+    .head .office small{display:block;font-weight:400;font-size:12pt;line-height:1.2;color:#444;
+          white-space:nowrap;overflow:hidden;margin-top:2px;}
+    .oneline{white-space:nowrap;overflow:hidden;}
+    .doctitle{text-align:center;font-size:20pt;font-weight:700;margin:2px 0 8px;letter-spacing:2px;}
+    .meta{display:flex;justify-content:space-between;font-size:13.5pt;margin-bottom:8px;}
+    .meta div{line-height:1.3;}
+    table{width:100%;border-collapse:collapse;margin-top:4px;}
+    th,td{border:1px solid #999;padding:3px 8px;font-size:13.5pt;line-height:1.2;}
     /* แถบหัวตาราง/แถวรวม ใช้สีแบบโปร่ง (rgba) แทนสีทึบ #eaecf8 / #f8f8fd
        สีทึบจะทับลายน้ำที่อยู่ข้างหลังจนโลโก้แหว่งเป็นช่อง ๆ ตรงแถบสีเวลาพิมพ์
        ค่า rgba นี้ให้เฉดเขียวเท่าเดิมเมื่อวางบนพื้นขาว แต่ลายน้ำทะลุขึ้นมาได้ */
@@ -5655,11 +5680,12 @@ function openDocPrintWindow(title, bodyHtml, opts){
     td.num{text-align:right;white-space:nowrap;}
     td.c{text-align:center;}
     tfoot td{font-weight:700;background:rgba(43,52,136,.035);}
-    .terms{margin-top:14px;font-size:13pt;color:#333;white-space:pre-wrap;}
+    .terms{margin-top:8px;font-size:13pt;color:#333;white-space:pre-wrap;line-height:1.3;}
     .terms b{color:#000;}
-    .signblock{margin-top:56px;text-align:center;font-size:14pt;}
-    .signblock .line{border-bottom:1px dotted #444;width:300px;margin:0 auto 6px;height:26px;}
-    .signblock2{margin-top:56px;display:flex;justify-content:space-between;gap:20px;font-size:14pt;text-align:center;}
+    .signblock{margin-top:40px;text-align:center;font-size:14pt;}
+    .signblock .line{border-bottom:1px dotted #444;width:420px;max-width:100%;margin:0 auto 6px;height:26px;}
+    .signblock .who{white-space:nowrap;}
+    .signblock2{margin-top:40px;display:flex;justify-content:space-between;gap:20px;font-size:14pt;text-align:center;}
     .signblock2 .signcol{flex:1;}
     .signblock2 .line{border-bottom:1px dotted #444;width:260px;margin:0 auto 6px;height:26px;}
 
@@ -5681,6 +5707,21 @@ function openDocPrintWindow(title, bodyHtml, opts){
   `, fontScale)}</style></head><body>
     ${useWatermark ? `<img class="watermark" src="${logoSrc}" alt="">` : ``}
     <div class="sheet">${bodyHtml}</div>
+    <script>
+      /* ที่อยู่หัวกระดาษต้องอยู่บรรทัดเดียว — ถ้ายาวเกินกว้างกระดาษ ค่อย ๆ ลดขนาดอักษรจนพอดี */
+      /* วัดที่ความกว้างพื้นที่พิมพ์จริงของ A4 (210mm − ขอบซ้ายขวา 18mm×2) ไม่ใช่ความกว้างหน้าจอ */
+      document.body.style.width = "174mm";
+      document.querySelectorAll(".head .office small, .oneline").forEach(function(el){
+        var fs = parseFloat(getComputedStyle(el).fontSize), n = 0;
+        // data-minscale = ย่อได้ต่ำสุดกี่เท่าของขนาดเดิม ถ้าย่อถึงแล้วยังไม่พอ ให้ตัดขึ้นบรรทัดใหม่แทน (อ่านง่ายกว่าตัวจิ๋ว)
+        var minFs = el.dataset.minscale ? fs * parseFloat(el.dataset.minscale) : 6;
+        while(el.scrollWidth > el.clientWidth + 1 && fs > minFs && n++ < 80){
+          fs -= 0.5; el.style.fontSize = fs + "px";
+        }
+        if(el.scrollWidth > el.clientWidth + 1) el.style.whiteSpace = "normal";
+      });
+      document.body.style.width = "";
+    <\/script>
   </body></html>`);
   w.document.close();
   setTimeout(()=>{ w.focus(); w.print(); }, 200);
@@ -5706,7 +5747,7 @@ function buildQuoteBody(data){
   return `
     <div class="head">
       <img src="${document.querySelector('header.top .logo').src}">
-      <div class="office">สำนักงานกฎหมายสากล<small>๑๗๓๖/๑๕-๑๖ หมู่ที่ ๙ ตำบลเทพารักษ์ อำเภอเมืองสมุทรปราการ จังหวัดสมุทรปราการ ๑๐๒๗๐ · โทร ๐๖๑๙๖๔๙๖๖๙, ๐๙๕๔๕๓๘๗๗๘</small></div>
+      <div class="office">สำนักงานกฎหมายสากล<small>๑๗๓๖/๑๕-๑๖ หมู่ที่ ๙ ตำบลเทพารักษ์ อำเภอเมืองสมุทรปราการ จังหวัดสมุทรปราการ ๑๐๒๗๐</small><small>โทร ๐๖๑๙๖๔๙๖๖๙, ๐๙๕๔๕๓๘๗๗๘</small></div>
     </div>
     <div class="doctitle">ใบเสนอราคา</div>
     ${voidStamp(data)}
@@ -5786,28 +5827,43 @@ function buildReceiptBody(data){
       <td class="c">${i+1}</td><td>${esc(it.label)}</td><td class="num">${fmtMoney(it.amount)}</td>
     </tr>`).join("");
   const total = data.items.reduce((s,it)=>s+it.amount,0);
+  const wht = !!data.wht;
+  const whtAmt = wht ? (data.whtAmount || whtOf(total)) : 0;
+  const net = total - whtAmt;
 
   return `
     <div class="head">
       <img src="${document.querySelector('header.top .logo').src}">
-      <div class="office">สำนักงานกฎหมายสากล<small>๑๗๓๖/๑๕-๑๖ หมู่ที่ ๙ ตำบลเทพารักษ์ อำเภอเมืองสมุทรปราการ จังหวัดสมุทรปราการ ๑๐๒๗๐ · โทร ๐๖๑๙๖๔๙๖๖๙, ๐๙๕๔๕๓๘๗๗๘</small></div>
+      <div class="office">สำนักงานกฎหมายสากล<small>๑๗๓๖/๑๕-๑๖ หมู่ที่ ๙ ตำบลเทพารักษ์ อำเภอเมืองสมุทรปราการ จังหวัดสมุทรปราการ ๑๐๒๗๐</small><small>โทร ๐๖๑๙๖๔๙๖๖๙, ๐๙๕๔๕๓๘๗๗๘</small></div>
     </div>
     <div class="doctitle">ใบเสร็จรับเงิน</div>
     ${voidStamp(data)}
     <div class="meta">
-      <div><b>ได้รับเงินจาก:</b><br>${esc(data.payer)}</div>
+      <div></div>
       <div style="text-align:right;">
         เลขที่ ${data.docNo}<br>
         วันที่ ${docDateThai(data.date)}<br>
         วิธีชำระ ${esc(data.method)}
       </div>
     </div>
+    <!-- ชื่อผู้ชำระเต็มความกว้าง บรรทัดเดียว — ชื่อยาวเกินจะย่ออักษรลงเองจนพอดี (class oneline) -->
+    <div class="oneline" data-minscale="0.6" style="font-size:13.5pt;margin:-2px 0 0;"><b>ได้รับเงินจาก:</b> ${esc(data.payer)}</div>
+    ${data.payerAddr ? `<div class="oneline" data-minscale="0.7" style="font-size:13.5pt;"><b>ที่อยู่:</b> ${esc(data.payerAddr).replace(/\n/g," ")}</div>` : ``}
+    ${data.payerTaxId ? `<div class="oneline" data-minscale="0.7" style="font-size:13.5pt;"><b>เลขประจำตัวผู้เสียภาษี:</b> ${esc(data.payerTaxId)}${data.payerBranch ? " &nbsp;<b>สาขา:</b> "+esc(data.payerBranch) : ""}</div>` : ``}
+    <div style="height:6px;"></div>
     <table>
       <thead><tr><th style="width:8%">ที่</th><th>รายการ</th><th style="width:30%">จำนวนเงิน (บาท)</th></tr></thead>
       <tbody>${rows}</tbody>
-      <tfoot><tr><td colspan="2" style="text-align:right;">รวมเป็นเงินทั้งสิ้น</td><td class="num">${fmtMoney(total)} บาท</td></tr></tfoot>
+      <tfoot>
+        ${wht ? `<tr><td colspan="2" style="text-align:right;">รวมเป็นเงิน</td><td class="num">${fmtMoney(total)}</td></tr>
+        <tr><td colspan="2" style="text-align:right;font-weight:400;">หัก ภาษีเงินได้ ณ ที่จ่าย ๓%</td><td class="num" style="font-weight:400;">${fmtMoney(whtAmt)}</td></tr>
+        <tr><td colspan="2" style="text-align:right;">ยอดรับสุทธิ</td><td class="num">${fmtMoney(net)} บาท</td></tr>`
+        : `<tr><td colspan="2" style="text-align:right;">รวมเป็นเงินทั้งสิ้น</td><td class="num">${fmtMoney(total)} บาท</td></tr>`}
+      </tfoot>
     </table>
-    <div class="signblock"><div class="line"></div>${esc(data.lawyer)}<br>ผู้รับเงิน</div>
+    <div class="terms" style="margin-top:6px;">(<b>${esc(thaiBahtText(total))}</b>)${wht ? `<br>ยอดรับสุทธิ (<b>${esc(thaiBahtText(net))}</b>) พร้อมหนังสือรับรองการหักภาษี ณ ที่จ่าย ${fmtMoney(whtAmt)} บาท` : ``}</div>
+    <div class="terms" style="font-size:11pt;margin-top:4px;">${data.issuerTaxId ? `เลขประจำตัวผู้เสียภาษีผู้ออกใบเสร็จ ${esc(data.issuerTaxId)} · ` : ``}ผู้ออกใบเสร็จมิได้จดทะเบียนภาษีมูลค่าเพิ่ม</div>
+    <div class="signblock"><div class="line"></div><div class="who">( ${esc(data.lawyer)} ) ผู้รับเงิน</div></div>
   `;
 }
 
@@ -5832,7 +5888,15 @@ async function confirmReceipt(btn){
   if(!items){ toast("กรุณาใส่รายการและจำนวนเงินอย่างน้อย 1 รายการ"); return; }
 
   const total = items.reduce((s,it)=>s+it.amount,0);
-  const record = { date:dateISO, payer, method:methodText, items, lawyer, total };
+  const wht = document.getElementById("r-wht").checked;
+  const whtAmount = wht ? whtOf(total) : 0;
+  const issuerTaxId = document.getElementById("r-issuer-tax").value.trim();
+  try{ localStorage.setItem("receiptIssuerTaxId", issuerTaxId); }catch(e){}
+  const record = { date:dateISO, payer, method:methodText, items, lawyer, total,
+    payerAddr: document.getElementById("r-payer-addr").value.trim(),
+    payerTaxId: document.getElementById("r-payer-tax").value.trim(),
+    payerBranch: document.getElementById("r-payer-branch").value.trim(),
+    wht, whtAmount, netAmount: total - whtAmount, issuerTaxId };
   Object.assign(record, docCaseFields("r"));
   if(docSource.receipt) Object.assign(record, docSource.receipt);
 
@@ -5866,7 +5930,7 @@ function buildLawyerFeeBody(data){
   return `
     <div class="head">
       <img src="${document.querySelector('header.top .logo').src}">
-      <div class="office">สำนักงานกฎหมายสากล<small>๑๗๓๖/๑๕-๑๖ หมู่ที่ ๙ ตำบลเทพารักษ์ อำเภอเมืองสมุทรปราการ จังหวัดสมุทรปราการ ๑๐๒๗๐ · โทร ๐๖๑๙๖๔๙๖๖๙, ๐๙๕๔๕๓๘๗๗๘</small></div>
+      <div class="office">สำนักงานกฎหมายสากล<small>๑๗๓๖/๑๕-๑๖ หมู่ที่ ๙ ตำบลเทพารักษ์ อำเภอเมืองสมุทรปราการ จังหวัดสมุทรปราการ ๑๐๒๗๐</small><small>โทร ๐๖๑๙๖๔๙๖๖๙, ๐๙๕๔๕๓๘๗๗๘</small></div>
     </div>
     <div class="doctitle">ใบรับเงินค่าทำคดี</div>
     <div class="meta">
@@ -5877,7 +5941,7 @@ function buildLawyerFeeBody(data){
         วิธีชำระ ${esc(data.method)}
       </div>
     </div>
-    <div class="terms" style="white-space:normal;color:#000;line-height:1.7;margin:0 0 10px;">
+    <div class="terms" style="white-space:normal;color:#000;line-height:1.3;margin:0 0 8px;">
       &emsp;&emsp;ข้าพเจ้า ${esc(data.lawyer)} ทนายความ${data.license ? " ใบอนุญาตเลขที่ "+esc(data.license) : ""}
       ได้รับเงินค่าทำคดีจาก ${esc(data.payer)}
       ${caseBits ? "ใน"+caseBits : ""}${data.parties ? " ระหว่าง "+esc(data.parties) : ""}
@@ -5952,7 +6016,7 @@ function buildBillingBody(data){
   return `
     <div class="head">
       <img src="${document.querySelector('header.top .logo').src}">
-      <div class="office">สำนักงานกฎหมายสากล<small>๑๗๓๖/๑๕-๑๖ หมู่ที่ ๙ ตำบลเทพารักษ์ อำเภอเมืองสมุทรปราการ จังหวัดสมุทรปราการ ๑๐๒๗๐ · โทร ๐๖๑๙๖๔๙๖๖๙, ๐๙๕๔๕๓๘๗๗๘</small></div>
+      <div class="office">สำนักงานกฎหมายสากล<small>๑๗๓๖/๑๕-๑๖ หมู่ที่ ๙ ตำบลเทพารักษ์ อำเภอเมืองสมุทรปราการ จังหวัดสมุทรปราการ ๑๐๒๗๐</small><small>โทร ๐๖๑๙๖๔๙๖๖๙, ๐๙๕๔๕๓๘๗๗๘</small></div>
     </div>
     <div class="doctitle">ใบวางบิล / ใบแจ้งหนี้</div>
     ${voidStamp(data)}
@@ -6278,7 +6342,7 @@ function printPeriodSummary(tab){
   const body = `
     <div class="head">
       <img src="${document.querySelector('header.top .logo').src}">
-      <div class="office">สำนักงานกฎหมายสากล<small>๑๗๓๖/๑๕-๑๖ หมู่ที่ ๙ ตำบลเทพารักษ์ อำเภอเมืองสมุทรปราการ จังหวัดสมุทรปราการ ๑๐๒๗๐ · โทร ๐๖๑๙๖๔๙๖๖๙, ๐๙๕๔๕๓๘๗๗๘</small></div>
+      <div class="office">สำนักงานกฎหมายสากล<small>๑๗๓๖/๑๕-๑๖ หมู่ที่ ๙ ตำบลเทพารักษ์ อำเภอเมืองสมุทรปราการ จังหวัดสมุทรปราการ ๑๐๒๗๐</small><small>โทร ๐๖๑๙๖๔๙๖๖๙, ๐๙๕๔๕๓๘๗๗๘</small></div>
     </div>
     <div class="doctitle">${isBill?"สรุปยอดวางบิล":"สรุปยอดรับเงิน"} (${esc(PERIOD_MODE_LABEL[st.mode])})</div>
     <div class="meta">
@@ -6313,7 +6377,7 @@ function printDemandLetter(idx){
   const body = `
     <div class="head">
       <img src="${document.querySelector('header.top .logo').src}">
-      <div class="office">สำนักงานกฎหมายสากล<small>๑๗๓๖/๑๕-๑๖ หมู่ที่ ๙ ตำบลเทพารักษ์ อำเภอเมืองสมุทรปราการ จังหวัดสมุทรปราการ ๑๐๒๗๐ · โทร ๐๖๑๙๖๔๙๖๖๙, ๐๙๕๔๕๓๘๗๗๘</small></div>
+      <div class="office">สำนักงานกฎหมายสากล<small>๑๗๓๖/๑๕-๑๖ หมู่ที่ ๙ ตำบลเทพารักษ์ อำเภอเมืองสมุทรปราการ จังหวัดสมุทรปราการ ๑๐๒๗๐</small><small>โทร ๐๖๑๙๖๔๙๖๖๙, ๐๙๕๔๕๓๘๗๗๘</small></div>
     </div>
     <div class="doctitle">หนังสือทวงถามให้ชำระหนี้</div>
     <div class="meta">
@@ -6612,70 +6676,72 @@ function buildContractBody(data){
   }
 
   const body = `
-    <div style="text-align:center;margin-bottom:10px;">
-      <img src="${document.querySelector('header.top .logo').src}" style="width:100px;height:100px;object-fit:contain;">
-      <div style="font-weight:700;font-size:18pt;margin-top:4px;">สำนักงานกฎหมายสากล</div>
-      <div style="font-size:12pt;">๑๗๓๖/๑๕-๑๖ หมู่ที่ ๙ ตำบลเทพารักษ์ อำเภอเมืองสมุทรปราการ จังหวัดสมุทรปราการ ๑๐๒๗๐</div>
-      <div style="font-size:12pt;">โทรศัพท์ ๐๖๑๙๖๔๙๖๖๙, ๐๙๕๔๕๓๘๗๗๘</div>
+    <div style="display:flex;align-items:center;gap:12px;border-bottom:2px solid #2b3488;padding-bottom:4px;margin-bottom:6px;line-height:1.15;">
+      <img src="${document.querySelector('header.top .logo').src}" style="width:64px;height:64px;object-fit:contain;flex:none;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;font-size:18pt;">สำนักงานกฎหมายสากล</div>
+        <div class="oneline" style="font-size:12pt;color:#444;">๑๗๓๖/๑๕-๑๖ หมู่ที่ ๙ ตำบลเทพารักษ์ อำเภอเมืองสมุทรปราการ จังหวัดสมุทรปราการ ๑๐๒๗๐</div>
+        <div style="font-size:12pt;color:#444;">โทร ๐๖๑๙๖๔๙๖๖๙, ๐๙๕๔๕๓๘๗๗๘</div>
+      </div>
     </div>
-    <div style="text-align:center;font-size:18pt;font-weight:700;margin:14px 0 4px;">สัญญาจ้างทำของ</div>
-    <div style="text-align:right;font-size:12pt;color:#555;margin:-8px 0 16px;">เลขที่ ${data.docNo}</div>
+    <div style="text-align:center;font-size:18pt;font-weight:700;margin:4px 0 0;">สัญญาจ้างทำของ</div>
+    <div style="text-align:right;font-size:12pt;color:#555;margin:-4px 0 4px;">เลขที่ ${data.docNo}</div>
     ${voidStamp(data)}
-    <div style="text-align:right;margin-bottom:14px;">วันที่ ${dayTH} เดือน ${esc(monthTH)} พ.ศ. ${yearTH}</div>
+    <div style="text-align:right;margin-bottom:6px;">วันที่ ${dayTH} เดือน ${esc(monthTH)} พ.ศ. ${yearTH}</div>
 
-    <p style="text-indent:2em;">
+    <p style="text-indent:2em;margin:0 0 6px;">
       สัญญาฉบับนี้ทำขึ้นระหว่าง ${esc(data.client)}
       ${data.address ? "ที่อยู่ "+esc(data.address) : ""}
       ต่อไปจะเรียกว่า <b>"ผู้ว่าจ้าง"</b> ฝ่ายหนึ่ง กับนภัสนันท์ อภิรมย์ศศิธร
       ซึ่งต่อไปจะเรียกว่า <b>"ผู้รับจ้าง"</b> อีกฝ่ายหนึ่ง
     </p>
-    <p style="text-indent:2em;">คู่สัญญาทั้งสองฝ่ายตกลงกันมีข้อความดังต่อไปนี้</p>
+    <p style="text-indent:2em;margin:0 0 6px;">คู่สัญญาทั้งสองฝ่ายตกลงกันมีข้อความดังต่อไปนี้</p>
 
-    <p style="text-indent:2em;">
+    <p style="text-indent:2em;margin:0 0 6px;">
       ข้อ 1. <b>ผู้ว่าจ้าง</b>ตกลงจ้าง<b>ผู้รับจ้าง</b>เป็นที่ปรึกษากฎหมาย ในการต่อสู้คดี${data.caseNo ? "หมายเลข "+esc(data.caseNo)+" " : ""}
       ของ${esc(data.court)} โดยมี ${esc(data.plaintiff)} โจทก์ ${esc(data.defendant)} จำเลย โดย <b>ผู้ว่าจ้าง</b> เป็น${esc(data.side)}
       ในคดีทั้งนี้ ใน${stageHtml}
     </p>
 
-    <p style="text-indent:2em;">
+    <p style="text-indent:2em;margin:0 0 6px;">
       ข้อ 2. <b>ผู้ว่าจ้าง</b>ตกลงชำระค่าปรึกษากฎหมายให้แก่<b>ผู้รับจ้าง</b>เป็นจำนวนเงิน ${toThaiNum(fmtMoney(data.total))} บาท
       (${thaiBahtText(data.total)}) โดยชำระดังนี้<br>
       ${installmentLines}${noteLine}
     </p>
 
-    <p style="text-indent:2em;">
+    <p style="text-indent:2em;margin:0 0 6px;">
       ข้อ 3. <b>ผู้รับจ้าง</b>มีหน้าที่จัดหาทนายความเข้าว่าความหรือแก้ต่างในคดีดังกล่าวให้แก่<b>ผู้ว่าจ้าง</b>ใน${stageHtml}
       <b>ผู้ว่าจ้าง</b>จะไม่ถอนทนายความที่<b>ผู้รับจ้าง</b>จัดหาไว้ เว้นแต่จะได้รับความยินยอมจาก<b>ผู้รับจ้าง</b>
       มิฉะนั้น <b>ผู้ว่าจ้าง</b>จะต้องชำระค่าปรึกษากฎหมายแก่<b>ผู้รับจ้าง</b>เต็มตามจำนวนที่ได้ตกลงกันไว้
     </p>
 
-    <p style="text-indent:2em;">
+    <p style="text-indent:2em;margin:0 0 6px;">
       ข้อ 4. หาก<b>ผู้ว่าจ้าง</b>ผิดสัญญาข้อใดข้อหนึ่งดังได้กล่าวมาข้างต้น <b>ผู้ว่าจ้าง</b>ยินยอมให้<b>ผู้รับจ้าง</b>บอกเลิกสัญญา
       และถอนตัวหรือแจ้งทนายความถอนตัวออกจากการเป็นทนายความของ<b>ผู้ว่าจ้าง</b>ได้ทันที
     </p>
 
-    <p style="text-indent:2em;${hasUpperStage ? "" : "text-decoration:line-through;"}">
+    <p style="text-indent:2em;margin:0 0 6px;${hasUpperStage ? "" : "text-decoration:line-through;"}">
       ข้อ 5. หากคดีมีการอุทธรณ์หรือฎีกาคำพิพากษาศาลล่าง <b>ผู้ว่าจ้าง</b>ตกลงชำระค่าปรึกษากฎหมายแก่<b>ผู้รับจ้าง</b>ดังนี้<br>
       &emsp;5.1 ชั้นอุทธรณ์จำนวน ${toThaiNum(fmtMoney(data.appealFee))} บาท (${data.appealFee?thaiBahtText(data.appealFee):"-"})<br>
       &emsp;5.2 ชั้นฎีกา จำนวน ${toThaiNum(fmtMoney(data.dikaFee))} บาท (${data.dikaFee?thaiBahtText(data.dikaFee):"-"})<br>
       ทั้งนี้เมื่อ<b>ผู้รับจ้าง</b>จัดทำอุทธรณ์หรือฎีกาแล้วเสร็จและ<b>ผู้ว่าจ้าง</b>ได้ตรวจดูจนเป็นที่พอใจแล้ว
     </p>
 
-    <p style="text-indent:2em;">
+    <p style="text-indent:2em;margin:0 0 6px;">
       สัญญานี้ทำขึ้นสองฉบับ มีข้อความถูกต้องตรงกัน คู่สัญญาได้อ่านและเข้าใจข้อความโดยละเอียดแล้ว
       จึงได้ลงลายมือชื่อไว้เป็นสำคัญต่อหน้าพยาน และคู่สัญญาต่างยึดถือไว้ฝ่ายละฉบับ
     </p>
 
-    <div style="margin-top:50px;display:flex;flex-wrap:wrap;gap:30px;justify-content:space-between;font-size:14pt;">
+    <div style="margin-top:30px;display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;font-size:14pt;">
       <div style="width:45%;text-align:center;">ลงชื่อ .............................................. ผู้ว่าจ้าง<br>( ${esc(data.client)} )</div>
       <div style="width:45%;text-align:center;">ลงชื่อ .............................................. ผู้รับจ้าง<br>( นภัสนันท์ อภิรมย์ศศิธร )</div>
-      <div style="width:45%;text-align:center;margin-top:30px;">ลงชื่อ .............................................. พยาน<br>( .............................................. )</div>
-      <div style="width:45%;text-align:center;margin-top:30px;">ลงชื่อ .............................................. พยาน<br>( .............................................. )</div>
+      <div style="width:45%;text-align:center;margin-top:16px;">ลงชื่อ .............................................. พยาน<br>( .............................................. )</div>
+      <div style="width:45%;text-align:center;margin-top:16px;">ลงชื่อ .............................................. พยาน<br>( .............................................. )</div>
     </div>
-    <div style="text-align:right;font-size:11pt;color:#666;margin-top:40px;">โทร ๐๖๑๙๖๔๙๖๖๙</div>
+    <div style="text-align:right;font-size:11pt;color:#666;margin-top:16px;">โทร ๐๖๑๙๖๔๙๖๖๙</div>
   `;
   return `<div style="font-family:'TH Sarabun New','Sarabun','Angsana New',sans-serif;
-    font-size:16pt;color:#000;line-height:1.7;">${body}</div>`;
+    font-size:16pt;color:#000;line-height:1.35;">${body}</div>`;
 }
 
 async function confirmContract(btn){
