@@ -601,6 +601,16 @@
   .docmodal .row-end{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
   .docmodal label.chk{display:flex;align-items:center;gap:6px;font-size:14px;margin-top:2px;}
   .docmodal.wide{max-width:760px;}
+  /* แถวรายการ + จำนวนเงิน (ช่องแยก) */
+  .itemrows .irow{display:flex;gap:6px;margin-bottom:6px;align-items:center;}
+  .itemrows .irow input.ir-label{flex:1;min-width:0;}
+  .itemrows .irow input.ir-amt{width:140px;flex:none;text-align:right;}
+  .itemrows .irow .ir-no{width:22px;flex:none;text-align:center;font-size:13px;color:var(--ink-faint);}
+  .itemrows .irow button.ir-del{flex:none;border:1px solid var(--line);background:#fff;border-radius:8px;
+    width:34px;height:36px;cursor:pointer;color:var(--ink-muted);font-size:16px;}
+  .itemrows .irow button.ir-del:hover{border-color:var(--rose);color:var(--rose);}
+  .itemrows-foot{display:flex;justify-content:space-between;align-items:center;margin-top:4px;gap:8px;}
+  .itemrows-foot .ir-total{font-weight:700;font-size:14.5px;color:var(--jade-deep);}
   .docmodal .seg{display:flex;gap:6px;flex-wrap:wrap;}
   .docmodal .seg button{border:1px solid var(--line);background:#fff;border-radius:8px;
     padding:7px 14px;font-family:inherit;font-size:14px;cursor:pointer;color:var(--ink-muted);}
@@ -726,6 +736,7 @@
     <button class="linkbtn" id="btnReceipt">ใบเสร็จรับเงิน</button>
     <button class="linkbtn" id="btnBilling">ใบวางบิล</button>
     <button class="linkbtn" id="btnContract">สัญญาจ้างทำของ</button>
+    <button class="linkbtn" id="btnLawyerFee">ใบรับเงินค่าทำคดี (ทนาย)</button>
     <button class="linkbtn" id="btnDocHistory">ประวัติเอกสาร</button>
     <button class="linkbtn" id="refreshBtn" style="display:none;">โหลดข้อมูลใหม่</button>
     <button class="linkbtn" id="logoutBtn" style="display:none;">ออกจากระบบ</button>
@@ -945,9 +956,12 @@
     </div>
     <div class="drow">
       <div class="dfield">
-        <label>รายการ + ราคา (บรรทัดละ 1 รายการ คั่นด้วย :)</label>
-        <textarea class="items" id="q-items" placeholder="ค่าธรรมเนียมทนายความ : 20000&#10;ค่าขึ้นศาล : 3000"></textarea>
-        <div class="items-hint">ระบบรวมยอดให้อัตโนมัติจากตัวเลขหลัง :</div>
+        <label>รายการ และ ราคา</label>
+        <div class="itemrows" id="q-rows" data-ph="เช่น ค่าธรรมเนียมทนายความ"></div>
+        <div class="itemrows-foot">
+          <button type="button" class="btn ghost sm" onclick="addItemRow('q')">+ เพิ่มรายการ</button>
+          <span class="ir-total" id="q-rows-total">รวม 0.00 บาท</span>
+        </div>
       </div>
     </div>
     <div class="drow">
@@ -1002,9 +1016,12 @@
     </div>
     <div class="drow">
       <div class="dfield">
-        <label>รายการ + จำนวนเงิน (บรรทัดละ 1 รายการ คั่นด้วย :)</label>
-        <textarea class="items" id="r-items" placeholder="ค่าธรรมเนียมทนายความ งวดที่ 1 : 10000"></textarea>
-        <div class="items-hint">ระบบรวมยอดให้อัตโนมัติจากตัวเลขหลัง :</div>
+        <label>รายการ และ จำนวนเงิน</label>
+        <div class="itemrows" id="r-rows" data-ph="เช่น ค่าธรรมเนียมทนายความ งวดที่ 1"></div>
+        <div class="itemrows-foot">
+          <button type="button" class="btn ghost sm" onclick="addItemRow('r')">+ เพิ่มรายการ</button>
+          <span class="ir-total" id="r-rows-total">รวม 0.00 บาท</span>
+        </div>
       </div>
     </div>
     <div class="drow">
@@ -1167,6 +1184,60 @@
   </div>
 </div>
 
+<div class="docmodal-bg" id="lawyerFeeModalBg">
+  <div class="docmodal">
+    <h3>ใบรับเงินค่าทำคดี (ทนายความลงชื่อรับเงิน)</h3>
+    <p class="hint">ใช้เมื่อสำนักงานจ่ายค่าทำคดีให้ทนายความ แล้วให้ทนายความลงชื่อรับเงิน — ระบบรันเลขที่ให้อัตโนมัติ (LF001/2569) บันทึกลงชีต “ใบรับเงินค่าทำคดี” ดูย้อนหลังได้ที่ประวัติเอกสาร (เป็นรายจ่าย ไม่นับรวมยอดรับ)</p>
+    <div class="drow">
+      <div class="dfield"><label>วันที่รับเงิน</label><div class="tdp" data-tdp><input type="text" class="tdp-display" readonly placeholder="วันที่รับเงิน"><input type="hidden" class="tdp-value" id="lf-date"><div class="tdp-pop"></div></div></div>
+    </div>
+    <div class="drow">
+      <div class="dfield"><label>ชื่อทนายความผู้รับเงิน</label><input id="lf-lawyer" placeholder="เช่น นายสมชาย ใจดี"></div>
+      <div class="dfield"><label>ใบอนุญาตทนายความเลขที่ (ไม่บังคับ)</label><input id="lf-license" placeholder="เช่น 12345/2560"></div>
+    </div>
+    <div class="drow">
+      <div class="dfield"><label>ผูกกับสำนวนคดี (ไม่บังคับ)</label>
+        <select id="lf-case" onchange="onDocCasePick('lf')"><option value="">— ไม่ผูกกับสำนวน —</option></select>
+        <div class="items-hint">เลือกแล้วระบบเติมเลขคดี ศาล คู่ความ ให้อัตโนมัติ</div>
+      </div>
+    </div>
+    <div class="drow">
+      <div class="dfield"><label>เลขคดี (ไม่บังคับ)</label><input id="lf-caseno" placeholder="เช่น อ.4876/2569"></div>
+      <div class="dfield"><label>ศาล (ไม่บังคับ)</label><input id="lf-court" placeholder="เช่น ศาลแขวงสมุทรปราการ"></div>
+    </div>
+    <div class="drow">
+      <div class="dfield"><label>คู่ความ / ชื่อคดี (ไม่บังคับ)</label><input id="lf-parties" placeholder="เช่น นาย ก. โจทก์ นาย ข. จำเลย"></div>
+    </div>
+    <div class="drow">
+      <div class="dfield"><label>ได้รับเงินจาก (ผู้จ่าย)</label><input id="lf-payer" value="สำนักงานกฎหมายสากล"></div>
+      <div class="dfield">
+        <label>วิธีชำระ</label>
+        <select id="lf-method"><option>เงินสด</option><option>โอนเงิน</option><option>เช็ค</option><option>อื่น ๆ</option></select>
+      </div>
+    </div>
+    <div class="drow">
+      <div class="dfield">
+        <label>รายการ และ จำนวนเงิน</label>
+        <div class="itemrows" id="lf-rows" data-ph="เช่น ค่าว่าความนัดสืบพยาน"></div>
+        <div class="itemrows-foot">
+          <button type="button" class="btn ghost sm" onclick="addItemRow('lf')">+ เพิ่มรายการ</button>
+          <span class="ir-total" id="lf-rows-total">รวม 0.00 บาท</span>
+        </div>
+      </div>
+    </div>
+    <div class="drow">
+      <div class="dfield"><label>หมายเหตุ (ไม่บังคับ)</label><textarea id="lf-note" style="min-height:50px;"></textarea></div>
+    </div>
+    <div class="drow">
+      <div class="dfield"><label>ผู้จ่ายเงิน (ลงชื่อฝั่งสำนักงาน)</label><input id="lf-paidby" value="นภัสนันท์ อภิรมย์ศศิธร"></div>
+    </div>
+    <div class="row-end">
+      <button class="btn ghost sm" onclick="closeDocModal('lawyerfee')">ยกเลิก</button>
+      <button class="btn sm" onclick="confirmLawyerFee(this)">พิมพ์ใบรับเงิน</button>
+    </div>
+  </div>
+</div>
+
 <div class="docmodal-bg" id="historyModalBg">
   <div class="docmodal wide">
     <h3>ประวัติเอกสาร</h3>
@@ -1176,6 +1247,7 @@
       <button type="button" data-v="receipt">ใบเสร็จรับเงิน</button>
       <button type="button" data-v="billing">ใบวางบิล</button>
       <button type="button" data-v="contract">สัญญาจ้างทำของ</button>
+      <button type="button" data-v="lawyerfee">ใบรับเงินค่าทำคดี</button>
     </div>
     <div class="searchbar" style="margin-bottom:12px;">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
@@ -5266,6 +5338,7 @@ const DOC_MODAL_MAP_ = {
   receipt:  { bg: "receiptModalBg",  date: "r-date" },
   billing:  { bg: "billingModalBg",  date: "b-date" },
   contract: { bg: "contractModalBg", date: "k-date" },
+  lawyerfee:{ bg: "lawyerFeeModalBg", date: "lf-date" },
   history:  { bg: "historyModalBg",  date: null }
 };
 /* ---------- ผูกเอกสารกับสำนวนคดี ---------- */
@@ -5284,7 +5357,7 @@ function fillCasePickers(){
     .slice()
     .sort((a,b)=> seqValue(a) - seqValue(b))
     .map(c=>`<option value="${esc(c.id)}">${esc(caseRefText(c))}</option>`).join("");
-  ["q","r","b","k"].forEach(pfx=>{
+  ["q","r","b","k","lf"].forEach(pfx=>{
     const sel = document.getElementById(pfx+"-case");
     if(!sel) return;
     const keep = sel.value;
@@ -5306,6 +5379,11 @@ function onDocCasePick(pfx){
     put("b-client", c.clientName);
     put("b-caseno", c.caseNumber);
     put("b-court", c.court);
+  }
+  if(pfx === "lf"){
+    put("lf-caseno", c.caseNumber);
+    put("lf-court", c.court);
+    put("lf-parties", partiesDisplay(c));
   }
   if(pfx === "k"){
     put("k-client", c.clientName);
@@ -5365,11 +5443,11 @@ function receiptFromBilling(idx){
   if(owed <= 0){ toast("ใบวางบิลนี้เก็บครบแล้ว"); return; }
 
   closeDocModal("history");
-  clearDocForm("r", ["payer","items"]);
+  clearDocForm("r", ["payer"]);
   document.getElementById("r-date").value = todayISO();
   syncDatePicker(document.getElementById("r-date"));
   document.getElementById("r-payer").value = b.client || "";
-  document.getElementById("r-items").value = `ชำระตามใบวางบิลเลขที่ ${b.docNo||""} : ${owed}`;
+  resetItemRows("r", [{label:`ชำระตามใบวางบิลเลขที่ ${b.docNo||""}`, amount:owed}]);
   docSource.receipt = { srcId:b.id, srcDocNo:b.docNo };
   openDocModal("receipt");                       // เติมรายชื่อสำนวนก่อน แล้วค่อยเลือก
   const sel = document.getElementById("r-case");
@@ -5388,7 +5466,8 @@ function openDocModal(type){
       syncDatePicker(dateInput);       // อัปเดตช่องที่ผู้ใช้เห็นให้ตรงกับค่าที่ตั้ง
     }
   }
-  if(["quote","receipt","billing","contract"].includes(type)) fillCasePickers();
+  if(["quote","receipt","billing","contract","lawyerfee"].includes(type)) fillCasePickers();
+  ["q","r","lf"].forEach(pfx=>{ const b=document.getElementById(pfx+"-rows"); if(b && !b.children.length) resetItemRows(pfx); });
   bg.classList.add("show");
   if(type === "history") loadDocHistory(currentHistTab);
 }
@@ -5399,6 +5478,7 @@ document.getElementById("btnQuote").addEventListener("click", ()=>{ docSource.qu
 document.getElementById("btnReceipt").addEventListener("click", ()=>{ docSource.receipt=null; openDocModal("receipt"); });
 document.getElementById("btnBilling").addEventListener("click", ()=>{ docSource.billing=null; openDocModal("billing"); });
 document.getElementById("btnContract").addEventListener("click", ()=>openDocModal("contract"));
+document.getElementById("btnLawyerFee").addEventListener("click", ()=>openDocModal("lawyerfee"));
 document.getElementById("btnDocHistory").addEventListener("click", ()=>{
   const s = document.getElementById("search-hist");
   if(s) s.value = "";
@@ -5445,6 +5525,63 @@ document.querySelectorAll("#r-bank-seg button").forEach(btn=>{
   });
 });
 
+/* ---------- ช่องรายการแยก (รายการ | จำนวนเงิน) ใช้กับใบเสนอราคา / ใบเสร็จ / ใบรับเงินค่าทำคดี ---------- */
+function addItemRow(pfx, label, amount){
+  const box = document.getElementById(pfx+"-rows");
+  if(!box) return;
+  const row = document.createElement("div");
+  row.className = "irow";
+  row.innerHTML = `<span class="ir-no"></span>
+    <input type="text" class="ir-label" placeholder="${esc(box.dataset.ph||"รายการ")}">
+    <input type="number" class="ir-amt" min="0" step="0.01" inputmode="decimal" placeholder="บาท">
+    <button type="button" class="ir-del" title="ลบรายการนี้">×</button>`;
+  row.querySelector(".ir-label").value = label || "";
+  row.querySelector(".ir-amt").value = (amount || amount === 0) && amount !== "" ? amount : "";
+  row.querySelector(".ir-amt").addEventListener("input", ()=>updateItemRowsTotal(pfx));
+  row.querySelector(".ir-del").addEventListener("click", ()=>{
+    row.remove();
+    if(!box.children.length) addItemRow(pfx);
+    renumberItemRows(pfx);
+  });
+  box.appendChild(row);
+  renumberItemRows(pfx);
+  if(!label) setTimeout(()=>{ if(box.closest(".docmodal-bg.show")) row.querySelector(".ir-label").focus(); }, 0);
+}
+function renumberItemRows(pfx){
+  const box = document.getElementById(pfx+"-rows");
+  if(!box) return;
+  Array.from(box.children).forEach((r,i)=>{ r.querySelector(".ir-no").textContent = (i+1)+"."; });
+  updateItemRowsTotal(pfx);
+}
+function updateItemRowsTotal(pfx){
+  const el = document.getElementById(pfx+"-rows-total");
+  if(!el) return;
+  const items = getItemRows(pfx) || [];
+  el.textContent = "รวม " + fmtMoney(items.reduce((t,it)=>t+it.amount,0)) + " บาท";
+}
+/** ล้างแล้วใส่รายการใหม่ (ถ้าไม่ส่ง list มา จะเหลือแถวว่าง 1 แถว) */
+function resetItemRows(pfx, list){
+  const box = document.getElementById(pfx+"-rows");
+  if(!box) return;
+  box.innerHTML = "";
+  (list && list.length ? list : [{}]).forEach(it=>addItemRow(pfx, it.label, it.amount));
+}
+/** อ่านช่องรายการ คืน [{label, amount}] — ข้ามแถวที่ไม่มีชื่อรายการหรือไม่มีจำนวนเงิน; ไม่มีเลยคืน null */
+function getItemRows(pfx){
+  const box = document.getElementById(pfx+"-rows");
+  if(!box) return null;
+  const out = [];
+  box.querySelectorAll(".irow").forEach(r=>{
+    const label = r.querySelector(".ir-label").value.trim();
+    const raw = String(r.querySelector(".ir-amt").value).replace(/[^\d.]/g,"");
+    const amount = parseFloat(raw);
+    if(!label || isNaN(amount)) return;
+    out.push({label, amount});
+  });
+  return out.length ? out : null;
+}
+["q","r","lf"].forEach(pfx=>{ if(document.getElementById(pfx+"-rows")) resetItemRows(pfx); });
+
 /** แยกบรรทัด "รายการ : จำนวนเงิน" เป็น [{label, amount}] คืน null ถ้าไม่มีรายการที่ถูกต้องเลย */
 function parseDocItems(text){
   const out = [];
@@ -5477,24 +5614,33 @@ function docDateThai(iso){
  * @param {string} bodyHtml  เนื้อเอกสาร
  * @param {object} [opts]    {watermark:false} = ไม่ต้องใส่ลายน้ำ (ใช้กับรายงานภายใน)
  */
+const FIN_DOC_FONT_SCALE = 1.5;   // ขนาดอักษรเอกสารการเงิน (ใบเสนอราคา/ใบเสร็จ/ใบวางบิล/หนังสือทวงถาม/ใบรับเงินค่าทำคดี)
+const CONTRACT_FONT_SCALE = 1.5;  // ขนาดอักษรสัญญาจ้างทำของ (1 = ขนาดเดิม)
+/** คูณขนาดตัวอักษรหน่วย pt ทุกจุดใน html/css ด้วย k */
+function scalePt(html, k){
+  if(!k || k === 1) return html;
+  return String(html).replace(/font-size:\s*(\d+(?:\.\d+)?)pt/g,
+    (m, n)=> "font-size:" + (Math.round(parseFloat(n)*k*10)/10) + "pt");
+}
 function openDocPrintWindow(title, bodyHtml, opts){
   const useWatermark = !(opts && opts.watermark === false);
+  const fontScale = (opts && opts.scale) || FIN_DOC_FONT_SCALE;
+  bodyHtml = scalePt(bodyHtml, fontScale);
   const logoSrc = document.querySelector("header.top .logo").src;
   const w = window.open("", "_blank");
   if(!w){ toast("เบราว์เซอร์บล็อกหน้าต่างใหม่ — อนุญาต popup แล้วลองใหม่"); return; }
   w.document.write(`<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
   <title>${title}</title>
-  <style>
-    @page{ size:A4; margin:18mm 20mm; }
+  <style>${scalePt(`    @page{ size:A4; margin:18mm 20mm; }
     *{box-sizing:border-box;}
     body{font-family:"TH Sarabun New","Sarabun","Angsana New",sans-serif;font-size:16pt;color:#000;margin:0;line-height:1.5;}
     /* ---- หัวกระดาษ ----
        ความสูงหัวกระดาษถูกกำหนดโดยโลโก้ 60px (min-height) ไม่ใช่ตัวอักษร
        ชื่อสำนักงานขยายจาก 18pt เป็น 22pt แต่บีบ line-height ลงเหลือ 1.05
        ทำให้กล่องข้อความยังเตี้ยกว่า 60px เท่าเดิม พื้นที่หัวกระดาษจึงไม่ขยับ */
-    .head{display:flex;align-items:center;gap:12px;min-height:60px;
+    .head{display:flex;align-items:center;gap:16px;min-height:100px;
           border-bottom:2px solid #2b3488;padding-bottom:10px;margin-bottom:16px;}
-    .head img{width:60px;height:60px;object-fit:contain;flex:none;}
+    .head img{width:100px;height:100px;object-fit:contain;flex:none;}
     .head .office{flex:1;min-width:0;font-weight:700;font-size:22pt;line-height:1.05;}
     .head .office small{display:block;font-weight:400;font-size:12pt;line-height:1.25;color:#444;}
     .doctitle{text-align:center;font-size:20pt;font-weight:700;margin:6px 0 16px;letter-spacing:2px;}
@@ -5512,10 +5658,10 @@ function openDocPrintWindow(title, bodyHtml, opts){
     .terms{margin-top:14px;font-size:13pt;color:#333;white-space:pre-wrap;}
     .terms b{color:#000;}
     .signblock{margin-top:56px;text-align:center;font-size:14pt;}
-    .signblock .line{border-bottom:1px dotted #444;width:240px;margin:0 auto 6px;height:26px;}
+    .signblock .line{border-bottom:1px dotted #444;width:300px;margin:0 auto 6px;height:26px;}
     .signblock2{margin-top:56px;display:flex;justify-content:space-between;gap:20px;font-size:14pt;text-align:center;}
     .signblock2 .signcol{flex:1;}
-    .signblock2 .line{border-bottom:1px dotted #444;width:220px;margin:0 auto 6px;height:26px;}
+    .signblock2 .line{border-bottom:1px dotted #444;width:260px;margin:0 auto 6px;height:26px;}
 
     /* ---- ลายน้ำโลโก้ (ให้เหมือนหน้าปก) ----
        ใช้ position:fixed เพื่อให้ลายน้ำติดไปทุกหน้าเวลาพิมพ์หลายแผ่น
@@ -5532,7 +5678,7 @@ function openDocPrintWindow(title, bodyHtml, opts){
       -webkit-print-color-adjust:exact; print-color-adjust:exact;
     }
     .sheet{position:relative; z-index:1;}   /* เนื้อเอกสารอยู่เหนือลายน้ำเสมอ */
-  </style></head><body>
+  `, fontScale)}</style></head><body>
     ${useWatermark ? `<img class="watermark" src="${logoSrc}" alt="">` : ``}
     <div class="sheet">${bodyHtml}</div>
   </body></html>`);
@@ -5574,7 +5720,7 @@ function buildQuoteBody(data){
     </div>
     ${data.scope ? `<div class="terms" style="margin-bottom:12px;"><b>ขอบเขตการทำงาน</b><br>${esc(data.scope).replace(/\n/g,"<br>")}</div>` : ``}
     <table>
-      <thead><tr><th style="width:8%">ที่</th><th>รายการ</th><th style="width:22%">จำนวนเงิน (บาท)</th></tr></thead>
+      <thead><tr><th style="width:8%">ที่</th><th>รายการ</th><th style="width:30%">จำนวนเงิน (บาท)</th></tr></thead>
       <tbody>${rows}</tbody>
       <tfoot>
         ${data.vat ? `<tr><td colspan="2" style="text-align:right;">รวมเป็นเงิน</td><td class="num">${fmtMoney(subtotal)}</td></tr>
@@ -5601,14 +5747,14 @@ async function confirmQuote(btn){
   const dateISO = document.getElementById("q-date").value || todayISO();
   const addr = document.getElementById("q-addr").value.trim();
   const scope = document.getElementById("q-scope").value.trim();
-  const items = parseDocItems(document.getElementById("q-items").value);
+  const items = getItemRows("q");
   const vatOn = document.getElementById("q-vat").checked;
   const terms = document.getElementById("q-terms").value.trim();
   const validDays = parseInt(document.getElementById("q-validdays").value,10) || 30;
   const lawyer = document.getElementById("q-lawyer").value.trim();
 
   if(!client){ toast("กรุณาใส่ชื่อลูกค้าก่อนค่ะ"); return; }
-  if(!items){ toast("กรุณาใส่รายการ+ราคาอย่างน้อย 1 รายการ (คั่นด้วย :)"); return; }
+  if(!items){ toast("กรุณาใส่รายการและราคาอย่างน้อย 1 รายการ"); return; }
 
   const validUntilD = new Date(dateISO+"T00:00:00");
   validUntilD.setDate(validUntilD.getDate()+validDays);
@@ -5657,7 +5803,7 @@ function buildReceiptBody(data){
       </div>
     </div>
     <table>
-      <thead><tr><th style="width:8%">ที่</th><th>รายการ</th><th style="width:22%">จำนวนเงิน (บาท)</th></tr></thead>
+      <thead><tr><th style="width:8%">ที่</th><th>รายการ</th><th style="width:30%">จำนวนเงิน (บาท)</th></tr></thead>
       <tbody>${rows}</tbody>
       <tfoot><tr><td colspan="2" style="text-align:right;">รวมเป็นเงินทั้งสิ้น</td><td class="num">${fmtMoney(total)} บาท</td></tr></tfoot>
     </table>
@@ -5669,7 +5815,7 @@ async function confirmReceipt(btn){
   const payer = document.getElementById("r-payer").value.trim();
   const dateISO = document.getElementById("r-date").value || todayISO();
   const method = document.getElementById("r-method").value;
-  const items = parseDocItems(document.getElementById("r-items").value);
+  const items = getItemRows("r");
   const lawyer = document.getElementById("r-lawyer").value.trim();
 
   let methodText = method;
@@ -5683,7 +5829,7 @@ async function confirmReceipt(btn){
   }
 
   if(!payer){ toast("กรุณาใส่ชื่อผู้ชำระเงินก่อนค่ะ"); return; }
-  if(!items){ toast("กรุณาใส่รายการ+จำนวนเงินอย่างน้อย 1 รายการ (คั่นด้วย :)"); return; }
+  if(!items){ toast("กรุณาใส่รายการและจำนวนเงินอย่างน้อย 1 รายการ"); return; }
 
   const total = items.reduce((s,it)=>s+it.amount,0);
   const record = { date:dateISO, payer, method:methodText, items, lawyer, total };
@@ -5708,6 +5854,82 @@ async function confirmReceipt(btn){
   const body = buildReceiptBody(Object.assign({}, record, {docNo: result.docNo}));
   closeDocModal("receipt");
   openDocPrintWindow("ใบเสร็จรับเงิน "+result.docNo, body);
+}
+
+/* ---------- ใบรับเงินค่าทำคดี (สำนักงานจ่ายให้ทนายความ ทนายลงชื่อรับเงิน) — พิมพ์อย่างเดียว ---------- */
+function buildLawyerFeeBody(data){
+  const rows = data.items.map((it,i)=>`<tr>
+      <td class="c">${i+1}</td><td>${esc(it.label)}</td><td class="num">${fmtMoney(it.amount)}</td>
+    </tr>`).join("");
+  const total = data.items.reduce((s,it)=>s+it.amount,0);
+  const caseBits = [data.caseNo ? "คดีหมายเลข "+esc(data.caseNo) : "", data.court ? esc(data.court) : ""].filter(Boolean).join(" ");
+  return `
+    <div class="head">
+      <img src="${document.querySelector('header.top .logo').src}">
+      <div class="office">สำนักงานกฎหมายสากล<small>๑๗๓๖/๑๕-๑๖ หมู่ที่ ๙ ตำบลเทพารักษ์ อำเภอเมืองสมุทรปราการ จังหวัดสมุทรปราการ ๑๐๒๗๐ · โทร ๐๖๑๙๖๔๙๖๖๙, ๐๙๕๔๕๓๘๗๗๘</small></div>
+    </div>
+    <div class="doctitle">ใบรับเงินค่าทำคดี</div>
+    <div class="meta">
+      <div><b>ได้รับเงินจาก:</b><br>${esc(data.payer)}</div>
+      <div style="text-align:right;">
+        ${data.docNo ? "เลขที่ "+esc(data.docNo)+"<br>" : ""}
+        วันที่ ${docDateThai(data.date)}<br>
+        วิธีชำระ ${esc(data.method)}
+      </div>
+    </div>
+    <div class="terms" style="white-space:normal;color:#000;line-height:1.7;margin:0 0 10px;">
+      &emsp;&emsp;ข้าพเจ้า ${esc(data.lawyer)} ทนายความ${data.license ? " ใบอนุญาตเลขที่ "+esc(data.license) : ""}
+      ได้รับเงินค่าทำคดีจาก ${esc(data.payer)}
+      ${caseBits ? "ใน"+caseBits : ""}${data.parties ? " ระหว่าง "+esc(data.parties) : ""}
+      ตามรายการดังต่อไปนี้ไว้ถูกต้องครบถ้วนแล้ว
+    </div>
+    <table>
+      <thead><tr><th style="width:8%">ที่</th><th>รายการ</th><th style="width:30%">จำนวนเงิน (บาท)</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><td colspan="2" style="text-align:right;">รวมเป็นเงินทั้งสิ้น</td><td class="num">${fmtMoney(total)} บาท</td></tr></tfoot>
+    </table>
+    <div class="terms" style="margin-top:10px;">(<b>${esc(thaiBahtText(total))}</b>)</div>
+    ${data.note ? `<div class="terms"><b>หมายเหตุ</b><br>${esc(data.note).replace(/\n/g,"<br>")}</div>` : ``}
+    <div class="signblock2">
+      <div class="signcol">
+        <div class="line"></div>
+        ( ${esc(data.lawyer)} )<br>ทนายความ ผู้รับเงิน
+      </div>
+      <div class="signcol">
+        <div class="line"></div>
+        ( ${esc(data.paidBy || "")} )<br>ผู้จ่ายเงิน
+      </div>
+    </div>
+  `;
+}
+
+async function confirmLawyerFee(btn){
+  const v = id => document.getElementById(id).value.trim();
+  const data = {
+    date: document.getElementById("lf-date").value || todayISO(),
+    lawyer: v("lf-lawyer"), license: v("lf-license"),
+    caseNo: v("lf-caseno"), court: v("lf-court"), parties: v("lf-parties"),
+    payer: v("lf-payer") || "สำนักงานกฎหมายสากล",
+    method: document.getElementById("lf-method").value,
+    items: getItemRows("lf"), note: v("lf-note"), paidBy: v("lf-paidby")
+  };
+  if(!data.lawyer){ toast("กรุณาใส่ชื่อทนายความผู้รับเงินก่อนค่ะ"); return; }
+  if(!data.items){ toast("กรุณาใส่รายการและจำนวนเงินอย่างน้อย 1 รายการ"); return; }
+  data.total = data.items.reduce((s,it)=>s+it.amount,0);
+  Object.assign(data, docCaseFields("lf"));
+
+  let result;
+  try{
+    // ล็อกปุ่มระหว่างรอ กันกดซ้ำจนได้เลขที่เอกสารหลายใบ
+    result = await withBusy(btn, "กำลังบันทึก…", ()=>api("saveLawyerFee", {record:data}));
+    if(!result) return;
+    if(result.duplicate) toast("บันทึกไปแล้ว — ใช้เลขที่เดิม " + result.docNo);
+  }
+  catch(e){ toast("บันทึกไม่สำเร็จ: "+e.message); return; }
+  histLawyerFeesCache = null;
+
+  closeDocModal("lawyerfee");
+  openDocPrintWindow("ใบรับเงินค่าทำคดี " + result.docNo, buildLawyerFeeBody(Object.assign({}, data, {docNo: result.docNo})));
 }
 
 /* ---------- ใบวางบิล ---------- */
@@ -5744,7 +5966,7 @@ function buildBillingBody(data){
     </div>
     ${caseLine ? `<div class="terms" style="margin-bottom:10px;"><b>อ้างถึงคดี</b> ${esc(caseLine)}</div>` : ``}
     <table>
-      <thead><tr><th style="width:8%">ที่</th><th>รายการ</th><th style="width:22%">จำนวนเงิน (บาท)</th></tr></thead>
+      <thead><tr><th style="width:8%">ที่</th><th>รายการ</th><th style="width:30%">จำนวนเงิน (บาท)</th></tr></thead>
       <tbody>${rows}</tbody>
       <tfoot>
         ${data.vat ? `<tr><td colspan="2" style="text-align:right;">รวมเป็นเงิน</td><td class="num">${fmtMoney(t.subtotal)}</td></tr>
@@ -5817,7 +6039,7 @@ async function confirmBilling(btn){
 }
 
 // เก็บข้อมูลประวัติที่โหลดมาแล้วไว้ในเครื่อง กันโหลดซ้ำทุกครั้งที่พิมพ์
-let histQuotesCache = null, histReceiptsCache = null, histContractsCache = null, histBillingsCache = null;
+let histQuotesCache = null, histReceiptsCache = null, histContractsCache = null, histBillingsCache = null, histLawyerFeesCache = null;
 
 const HIST_CFG_ = {
   quote:    { action:"listQuotes",    key:"quotes",    cache:()=>histQuotesCache,    setCache:v=>histQuotesCache=v,
@@ -5832,7 +6054,11 @@ const HIST_CFG_ = {
               build:buildBillingBody, title:"ใบวางบิล " },
   contract: { action:"listContracts", key:"contracts", cache:()=>histContractsCache, setCache:v=>histContractsCache=v,
               label:"สัญญาจ้างทำของ", nameOf:d=>d.client, subOf:d=>docDateThai(d.date) + " · " + (d.court||""),
-              build:buildContractBody, title:"สัญญาจ้างทำของ " }
+              build:buildContractBody, title:"สัญญาจ้างทำของ " },
+  lawyerfee:{ action:"listLawyerFees", key:"lawyerfees", cache:()=>histLawyerFeesCache, setCache:v=>histLawyerFeesCache=v,
+              label:"ใบรับเงินค่าทำคดี", nameOf:d=>d.lawyer,
+              subOf:d=>docDateThai(d.date) + (d.caseNo ? " · " + d.caseNo : "") + (d.court ? " · " + d.court : ""),
+              build:buildLawyerFeeBody, title:"ใบรับเงินค่าทำคดี " }
 };
 
 async function loadDocHistory(tab){
@@ -6070,7 +6296,7 @@ function printPeriodSummary(tab){
       <div class="signcol"><div class="line"></div>ผู้ตรวจสอบ<br>วันที่ ..................................</div>
     </div>
   `;
-  openDocPrintWindow((isBill?"สรุปยอดวางบิล ":"สรุปยอดรับเงิน ") + periodTxt, body, {watermark:false});
+  openDocPrintWindow((isBill?"สรุปยอดวางบิล ":"สรุปยอดรับเงิน ") + periodTxt, body, {watermark:false, scale:1});
 }
 
 /** หนังสือทวงถามให้ชำระหนี้ ออกจากใบวางบิลที่เลยกำหนดแล้ว */
@@ -6298,7 +6524,7 @@ function reprintDoc(tab, idx){
   const d = cfg.cache()[idx];
   const body = cfg.build(d);
   closeDocModal("history");
-  openDocPrintWindow(cfg.title + d.docNo, body);
+  openDocPrintWindow(cfg.title + d.docNo, body, tab === "contract" ? {scale:CONTRACT_FONT_SCALE} : undefined);
 }
 
 /** แปลงจำนวนเงินเป็นคำอ่านภาษาไทย เช่น 25000 -> "สองหมื่นห้าพันบาทถ้วน" */
@@ -6366,6 +6592,8 @@ function stageChoiceHtml(selectedList){
 /** สร้าง HTML เนื้อหาสัญญาจ้างทำของ จากข้อมูล (ใช้ทั้งตอนสร้างใหม่และพิมพ์ซ้ำจากประวัติ) */
 function buildContractBody(data){
   const stageHtml = stageChoiceHtml(data.stages);
+  // ข้อ 5 ใช้เฉพาะเมื่อว่าจ้างชั้นอุทธรณ์หรือฎีกา — ไม่ติ๊กทั้งสองชั้น ให้ขีดฆ่าข้อ 5 ทั้งข้อ
+  const hasUpperStage = (data.stages||[]).some(st => st === "ชั้นอุทธรณ์" || st === "ชั้นฎีกา");
   const dt = new Date(data.date+"T00:00:00");
   const dayTH = toThaiNum(dt.getDate());
   const monthTH = TH_MONTHS[dt.getMonth()];
@@ -6385,7 +6613,7 @@ function buildContractBody(data){
 
   const body = `
     <div style="text-align:center;margin-bottom:10px;">
-      <img src="${document.querySelector('header.top .logo').src}" style="width:60px;height:60px;object-fit:contain;">
+      <img src="${document.querySelector('header.top .logo').src}" style="width:100px;height:100px;object-fit:contain;">
       <div style="font-weight:700;font-size:18pt;margin-top:4px;">สำนักงานกฎหมายสากล</div>
       <div style="font-size:12pt;">๑๗๓๖/๑๕-๑๖ หมู่ที่ ๙ ตำบลเทพารักษ์ อำเภอเมืองสมุทรปราการ จังหวัดสมุทรปราการ ๑๐๒๗๐</div>
       <div style="font-size:12pt;">โทรศัพท์ ๐๖๑๙๖๔๙๖๖๙, ๐๙๕๔๕๓๘๗๗๘</div>
@@ -6426,7 +6654,7 @@ function buildContractBody(data){
       และถอนตัวหรือแจ้งทนายความถอนตัวออกจากการเป็นทนายความของ<b>ผู้ว่าจ้าง</b>ได้ทันที
     </p>
 
-    <p style="text-indent:2em;">
+    <p style="text-indent:2em;${hasUpperStage ? "" : "text-decoration:line-through;"}">
       ข้อ 5. หากคดีมีการอุทธรณ์หรือฎีกาคำพิพากษาศาลล่าง <b>ผู้ว่าจ้าง</b>ตกลงชำระค่าปรึกษากฎหมายแก่<b>ผู้รับจ้าง</b>ดังนี้<br>
       &emsp;5.1 ชั้นอุทธรณ์จำนวน ${toThaiNum(fmtMoney(data.appealFee))} บาท (${data.appealFee?thaiBahtText(data.appealFee):"-"})<br>
       &emsp;5.2 ชั้นฎีกา จำนวน ${toThaiNum(fmtMoney(data.dikaFee))} บาท (${data.dikaFee?thaiBahtText(data.dikaFee):"-"})<br>
@@ -6498,7 +6726,7 @@ async function confirmContract(btn){
 
   const wrapped = buildContractBody(Object.assign({}, record, {docNo: result.docNo}));
   closeDocModal("contract");
-  openDocPrintWindow("สัญญาจ้างทำของ "+result.docNo, wrapped);
+  openDocPrintWindow("สัญญาจ้างทำของ "+result.docNo, wrapped, {scale:CONTRACT_FONT_SCALE});
 }
 
 
