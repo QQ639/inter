@@ -738,6 +738,7 @@
     <button class="linkbtn" id="btnContract">สัญญาจ้างทำของ</button>
     <button class="linkbtn" id="btnLawyerFee">ใบรับเงินค่าทำคดี (ทนาย)</button>
     <button class="linkbtn" id="btnDocHistory">ประวัติเอกสาร</button>
+    <button class="linkbtn" id="btnSettings">ตั้งค่าทนาย / บัญชี</button>
     <button class="linkbtn" id="refreshBtn" style="display:none;">โหลดข้อมูลใหม่</button>
     <button class="linkbtn" id="logoutBtn" style="display:none;">ออกจากระบบ</button>
   </div>
@@ -817,7 +818,7 @@
         <div class="field"><label>ศาล</label>
           <input name="court" id="add-court" placeholder="เช่น ศาลจังหวัดพระประแดง" required></div>
         <div class="field"><label>ทนายผู้รับผิดชอบ</label>
-          <input name="lawyer" placeholder="ชื่อทนายความ" required></div>
+          <input name="lawyer" list="dl-lawyers" placeholder="ชื่อทนายความ" required></div>
       </div>
       <div class="grid2">
         <div class="field"><label>โจทก์</label><input name="plaintiff" placeholder="ชื่อโจทก์"></div>
@@ -971,7 +972,7 @@
       <div class="dfield"><label>เงื่อนไขการชำระเงิน (ไม่บังคับ)</label><textarea id="q-terms" style="min-height:50px;" placeholder="เช่น ชำระมัดจำ 50% ส่วนที่เหลือชำระเมื่องานแล้วเสร็จ"></textarea></div>
     </div>
     <div class="drow">
-      <div class="dfield"><label>ทนายผู้เสนอราคา</label><input id="q-lawyer" value="นางสาวนภัสนันท์ อภิรมย์ศศิธร"></div>
+      <div class="dfield"><label>ทนายผู้เสนอราคา</label><input id="q-lawyer" list="dl-lawyers" value="นางสาวนภัสนันท์ อภิรมย์ศศิธร"></div>
     </div>
     <div class="row-end">
       <button class="btn ghost sm" onclick="closeDocModal('quote')">ยกเลิก</button>
@@ -1037,7 +1038,7 @@
       </div>
     </div>
     <div class="drow">
-      <div class="dfield"><label>ผู้รับเงิน / ทนายผู้ออกใบเสร็จ</label><input id="r-lawyer" value="นางสาวนภัสนันท์ อภิรมย์ศศิธร"></div>
+      <div class="dfield"><label>ผู้รับเงิน / ทนายผู้ออกใบเสร็จ</label><input id="r-lawyer" list="dl-lawyers" value="นางสาวนภัสนันท์ อภิรมย์ศศิธร"></div>
       <div class="dfield"><label>เลขประจำตัวผู้เสียภาษีผู้ออกใบเสร็จ</label><input id="r-issuer-tax" inputmode="numeric" placeholder="13 หลัก (จำไว้ให้ครั้งต่อไป)"></div>
     </div>
     <div class="row-end">
@@ -1085,13 +1086,15 @@
       <div class="dfield"><label class="chk"><input type="checkbox" id="b-vat"> คิดภาษีมูลค่าเพิ่ม 7%</label></div>
     </div>
     <div class="drow">
-      <div class="dfield"><label>ช่องทางชำระเงิน</label><textarea id="b-payinfo" style="min-height:50px;" placeholder="เช่น โอนเข้าบัญชี ธนาคารกสิกรไทย เลขที่ 123-4-56789-0 ชื่อบัญชี สำนักงานกฎหมายสากล"></textarea></div>
+      <div class="dfield"><label>ช่องทางชำระเงิน</label>
+        <select id="b-bank" onchange="onBillBankPick()" style="margin-bottom:6px;"><option value="">— เลือกบัญชีที่บันทึกไว้ —</option></select>
+        <textarea id="b-payinfo" style="min-height:50px;" placeholder="เช่น โอนเข้าบัญชี ธนาคารกสิกรไทย เลขที่ 123-4-56789-0 ชื่อบัญชี สำนักงานกฎหมายสากล"></textarea></div>
     </div>
     <div class="drow">
       <div class="dfield"><label>หมายเหตุ (ไม่บังคับ)</label><textarea id="b-note" style="min-height:50px;" placeholder="เช่น กรุณาชำระภายในวันที่กำหนด หากมีข้อสงสัยติดต่อ 080-276-7555"></textarea></div>
     </div>
     <div class="drow">
-      <div class="dfield"><label>ผู้วางบิล</label><input id="b-lawyer" value="นางสาวนภัสนันท์ อภิรมย์ศศิธร"></div>
+      <div class="dfield"><label>ผู้วางบิล</label><input id="b-lawyer" list="dl-lawyers" value="นางสาวนภัสนันท์ อภิรมย์ศศิธร"></div>
     </div>
     <div class="row-end">
       <button class="btn ghost sm" onclick="closeDocModal('billing')">ยกเลิก</button>
@@ -1170,13 +1173,20 @@
       <div class="drow">
         <div class="dfield"><label>รวมทั้งสิ้น (บาท)</label><input type="number" id="k-total" min="0"></div>
       </div>
-      <div class="items-hint" style="margin-bottom:6px;">ใส่ได้สูงสุด 6 งวด — งวดไหนไม่ใช้เว้นว่างไว้ ระบบจะข้ามให้เอง</div>
+      <div class="items-hint" style="margin-bottom:6px;">ใส่ได้สูงสุด 6 งวด — งวดไหนไม่ใช้เว้นว่างไว้ ระบบจะข้ามให้เอง<br>
+        ตั้ง "เตือนวางบิล" ได้ทีละงวด — ระบบจะเตือนบนหน้าแรกล่วงหน้า ๓๐ วันก่อนถึงกำหนด แบบ "ตามนัดในสำนวน" ต้องผูกสัญญากับสำนวน และใช้วันนัดแรกที่ตรงชื่อนัดนับจากวันทำสัญญา</div>
       <div class="drow"><div class="dfield"><label>งวดที่ 1 — ชำระภายในวันที่</label><input id="k-d1" placeholder="เช่น วันนี้"></div><div class="dfield"><label>จำนวนเงิน (บาท)</label><input type="number" id="k-a1" min="0"></div></div>
+      <div class="drow inst-rem"><div class="dfield"><label>เตือนวางบิลงวดที่ 1</label><select id="k-m1" class="inst-mode" data-i="1"><option value="">ไม่เตือน</option><option value="date">ตามวันที่</option><option value="appt">ตามนัดในสำนวน</option></select></div><div class="dfield" id="k-dw1" style="display:none;"><label>วันครบกำหนดงวด</label><div class="tdp" data-tdp><input type="text" class="tdp-display" readonly placeholder="เลือกวันที่"><input type="hidden" class="tdp-value" id="k-due1"><div class="tdp-pop"></div></div></div><div class="dfield" id="k-aw1" style="display:none;"><label>นัดที่ใช้นับ</label><select id="k-ap1" class="appt-type-sel"></select></div></div>
       <div class="drow"><div class="dfield"><label>งวดที่ 2 — ชำระภายในวันที่</label><input id="k-d2" placeholder="เช่น วันฟ้องคดี"></div><div class="dfield"><label>จำนวนเงิน (บาท)</label><input type="number" id="k-a2" min="0"></div></div>
+      <div class="drow inst-rem"><div class="dfield"><label>เตือนวางบิลงวดที่ 2</label><select id="k-m2" class="inst-mode" data-i="2"><option value="">ไม่เตือน</option><option value="date">ตามวันที่</option><option value="appt">ตามนัดในสำนวน</option></select></div><div class="dfield" id="k-dw2" style="display:none;"><label>วันครบกำหนดงวด</label><div class="tdp" data-tdp><input type="text" class="tdp-display" readonly placeholder="เลือกวันที่"><input type="hidden" class="tdp-value" id="k-due2"><div class="tdp-pop"></div></div></div><div class="dfield" id="k-aw2" style="display:none;"><label>นัดที่ใช้นับ</label><select id="k-ap2" class="appt-type-sel"></select></div></div>
       <div class="drow"><div class="dfield"><label>งวดที่ 3 — ชำระภายในวันที่</label><input id="k-d3"></div><div class="dfield"><label>จำนวนเงิน (บาท)</label><input type="number" id="k-a3" min="0"></div></div>
+      <div class="drow inst-rem"><div class="dfield"><label>เตือนวางบิลงวดที่ 3</label><select id="k-m3" class="inst-mode" data-i="3"><option value="">ไม่เตือน</option><option value="date">ตามวันที่</option><option value="appt">ตามนัดในสำนวน</option></select></div><div class="dfield" id="k-dw3" style="display:none;"><label>วันครบกำหนดงวด</label><div class="tdp" data-tdp><input type="text" class="tdp-display" readonly placeholder="เลือกวันที่"><input type="hidden" class="tdp-value" id="k-due3"><div class="tdp-pop"></div></div></div><div class="dfield" id="k-aw3" style="display:none;"><label>นัดที่ใช้นับ</label><select id="k-ap3" class="appt-type-sel"></select></div></div>
       <div class="drow"><div class="dfield"><label>งวดที่ 4 — ชำระภายในวันที่</label><input id="k-d4"></div><div class="dfield"><label>จำนวนเงิน (บาท)</label><input type="number" id="k-a4" min="0"></div></div>
+      <div class="drow inst-rem"><div class="dfield"><label>เตือนวางบิลงวดที่ 4</label><select id="k-m4" class="inst-mode" data-i="4"><option value="">ไม่เตือน</option><option value="date">ตามวันที่</option><option value="appt">ตามนัดในสำนวน</option></select></div><div class="dfield" id="k-dw4" style="display:none;"><label>วันครบกำหนดงวด</label><div class="tdp" data-tdp><input type="text" class="tdp-display" readonly placeholder="เลือกวันที่"><input type="hidden" class="tdp-value" id="k-due4"><div class="tdp-pop"></div></div></div><div class="dfield" id="k-aw4" style="display:none;"><label>นัดที่ใช้นับ</label><select id="k-ap4" class="appt-type-sel"></select></div></div>
       <div class="drow"><div class="dfield"><label>งวดที่ 5 — ชำระภายในวันที่</label><input id="k-d5"></div><div class="dfield"><label>จำนวนเงิน (บาท)</label><input type="number" id="k-a5" min="0"></div></div>
+      <div class="drow inst-rem"><div class="dfield"><label>เตือนวางบิลงวดที่ 5</label><select id="k-m5" class="inst-mode" data-i="5"><option value="">ไม่เตือน</option><option value="date">ตามวันที่</option><option value="appt">ตามนัดในสำนวน</option></select></div><div class="dfield" id="k-dw5" style="display:none;"><label>วันครบกำหนดงวด</label><div class="tdp" data-tdp><input type="text" class="tdp-display" readonly placeholder="เลือกวันที่"><input type="hidden" class="tdp-value" id="k-due5"><div class="tdp-pop"></div></div></div><div class="dfield" id="k-aw5" style="display:none;"><label>นัดที่ใช้นับ</label><select id="k-ap5" class="appt-type-sel"></select></div></div>
       <div class="drow"><div class="dfield"><label>งวดที่ 6 — ชำระภายในวันที่</label><input id="k-d6"></div><div class="dfield"><label>จำนวนเงิน (บาท)</label><input type="number" id="k-a6" min="0"></div></div>
+      <div class="drow inst-rem"><div class="dfield"><label>เตือนวางบิลงวดที่ 6</label><select id="k-m6" class="inst-mode" data-i="6"><option value="">ไม่เตือน</option><option value="date">ตามวันที่</option><option value="appt">ตามนัดในสำนวน</option></select></div><div class="dfield" id="k-dw6" style="display:none;"><label>วันครบกำหนดงวด</label><div class="tdp" data-tdp><input type="text" class="tdp-display" readonly placeholder="เลือกวันที่"><input type="hidden" class="tdp-value" id="k-due6"><div class="tdp-pop"></div></div></div><div class="dfield" id="k-aw6" style="display:none;"><label>นัดที่ใช้นับ</label><select id="k-ap6" class="appt-type-sel"></select></div></div>
       <div class="drow">
         <div class="dfield"><label>หมายเหตุ (ไม่บังคับ)</label><textarea id="k-note" style="min-height:60px;" placeholder="เช่น ค่าใช้จ่ายที่ศาลเรียกเก็บ ผู้ว่าจ้างเป็นผู้ชำระ โดยผู้รับจ้างจะสำรองจ่ายให้ก่อนแล้วเรียกเก็บภายหลัง"></textarea></div>
       </div>
@@ -1205,7 +1215,7 @@
       <div class="dfield"><label>วันที่รับเงิน</label><div class="tdp" data-tdp><input type="text" class="tdp-display" readonly placeholder="วันที่รับเงิน"><input type="hidden" class="tdp-value" id="lf-date"><div class="tdp-pop"></div></div></div>
     </div>
     <div class="drow">
-      <div class="dfield"><label>ชื่อทนายความผู้รับเงิน</label><input id="lf-lawyer" placeholder="เช่น นายสมชาย ใจดี"></div>
+      <div class="dfield"><label>ชื่อทนายความผู้รับเงิน</label><input id="lf-lawyer" list="dl-lawyers" placeholder="เช่น นายสมชาย ใจดี"></div>
       <div class="dfield"><label>ใบอนุญาตทนายความเลขที่ (ไม่บังคับ)</label><input id="lf-license" placeholder="เช่น 12345/2560"></div>
     </div>
     <div class="drow">
@@ -1251,6 +1261,41 @@
   </div>
 </div>
 
+<datalist id="dl-lawyers"></datalist>
+
+<div class="docmodal-bg" id="settingsModalBg">
+  <div class="docmodal wide">
+    <h3>ตั้งค่าทนายความ / บัญชีธนาคาร</h3>
+    <p class="hint">บันทึกครั้งเดียว ใช้ได้ทุกเครื่อง — ช่องชื่อทนายทุกจุดจะมีรายชื่อให้เลือก ใบเสร็จและใบวางบิลเลือกบัญชีได้ทันที ★ = ค่าตั้งต้น</p>
+    <fieldset>
+      <legend>รายชื่อทนายความ</legend>
+      <div id="set-lawyers"></div>
+      <button type="button" class="btn ghost sm" onclick="addSettingRow('lawyers')">+ เพิ่มทนาย</button>
+    </fieldset>
+    <fieldset>
+      <legend>บัญชีธนาคารรับเงิน</legend>
+      <div id="set-banks"></div>
+      <button type="button" class="btn ghost sm" onclick="addSettingRow('banks')">+ เพิ่มบัญชี</button>
+    </fieldset>
+    <div class="row-end">
+      <button class="btn ghost sm" onclick="closeDocModal('settings')">ปิด</button>
+      <button class="btn sm" onclick="saveSettingsUI(this)">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<div class="docmodal-bg" id="instModalBg">
+  <div class="docmodal">
+    <h3 id="inst-title">ตั้งเตือนงวดชำระ</h3>
+    <p class="hint">จำนวนเงินและข้อความในสัญญาไม่เปลี่ยน แก้เฉพาะวันที่ระบบจะใช้เตือนให้วางบิล (เตือนล่วงหน้า ๓๐ วัน)</p>
+    <div id="inst-rows"></div>
+    <div class="row-end">
+      <button class="btn ghost sm" onclick="closeDocModal('inst')">ยกเลิก</button>
+      <button class="btn sm" onclick="saveInstallmentsUI(this)">บันทึก</button>
+    </div>
+  </div>
+</div>
+
 <div class="docmodal-bg" id="historyModalBg">
   <div class="docmodal wide">
     <h3>ประวัติเอกสาร</h3>
@@ -1284,6 +1329,7 @@ const STATUS_OPTIONS = [
   "นัดสืบพยานโจทก์จำเลย","นัดฟังคำพิพากษา","ครบอุทธรณ์","ครบฎีกา","รอฟังอุทธรณ์","รอฟังฎีกา",
   "บังคับคดี","อื่นๆ ระบุ","คดีถึงที่สุดแล้ว เสร็จสิ้นสำนวน"
 ];
+let settings = { lawyers: [], banks: [] };   // รายชื่อทนาย / บัญชีธนาคาร จากชีต "ตั้งค่า"
 const CASE_TYPE_OPTIONS = ["แพ่ง","อาญา","ผู้บริโภค","ยาเสพติด","อื่นๆ ระบุ","ชั้นบังคับคดี"];
 const OTHER_MARKER = "อื่นๆ ระบุ";
 const APPT_TIMES = ["เช้า","บ่าย","เย็น"];
@@ -1448,7 +1494,7 @@ let session = { passcode:"", user:"", role:"user" };
  */
 function applyRolePermissions(){
   const isAdmin = !TEAM_MODE || session.role === "admin";
-  ["btnQuote","btnReceipt","btnBilling","btnContract","btnDocHistory"].forEach(id=>{
+  ["btnQuote","btnReceipt","btnBilling","btnContract","btnDocHistory","btnSettings"].forEach(id=>{
     const b = document.getElementById(id);
     if(b) b.style.display = isAdmin ? "" : "none";
   });
@@ -1681,7 +1727,7 @@ let storageOK = true;
 function save(){
   if(!storageOK) return;
   try{
-    localStorage.setItem(STORE_KEY, JSON.stringify({cases, events, billings: histBillingsCache, notes}));
+    localStorage.setItem(STORE_KEY, JSON.stringify({cases, events, billings: histBillingsCache, contracts: histContractsCache, settings, notes}));
   }catch(e){
     storageOK = false;
     toast("บันทึกลงเครื่องไม่สำเร็จ — ข้อมูลจะหายเมื่อปิดหน้า");
@@ -1697,6 +1743,8 @@ function load(){
     cases.forEach(normalizeCase);
     if(Array.isArray(data.events)) events = data.events;   // เผื่อแคชเก่าที่ยังไม่มี events ไม่ให้พัง
     if(Array.isArray(data.billings)) histBillingsCache = data.billings;
+    if(Array.isArray(data.contracts)) histContractsCache = data.contracts;
+    if(data.settings) applySettings(data.settings);
     if(Array.isArray(data.notes)) notes = data.notes;
     return true;
   }catch(e){
@@ -1778,6 +1826,8 @@ async function bootLoad(fresh){
   events = (r.events||[]).filter(e=>e.date);
   updateEventCount();
   if(r.billings) histBillingsCache = r.billings;
+  if(r.contracts) histContractsCache = r.contracts;
+  if(r.settings) applySettings(r.settings);
   if(Array.isArray(r.notes)) notes = r.notes;
   save();                       // เก็บสำเนาชุดล่าสุดไว้ใช้เปิดครั้งหน้าแบบไม่ต้องรอเน็ต
   return r;
@@ -3531,7 +3581,7 @@ function openCase(id){
             </select>
             <input id="f-caseType-other" placeholder="ระบุประเภทคดี" value="${isKnownCaseType(c.caseType)?"":esc(c.caseType)}"
               style="display:${isKnownCaseType(c.caseType)?"none":"block"};margin-top:6px;"></div>
-          <div class="field"><label>ทนายผู้รับผิดชอบ</label><input id="f-lawyer" value="${esc(c.lawyer)}"></div>
+          <div class="field"><label>ทนายผู้รับผิดชอบ</label><input id="f-lawyer" list="dl-lawyers" value="${esc(c.lawyer)}"></div>
         </div>
         <div class="grid2">
           <div class="field"><label>สถานะ</label>
@@ -3756,7 +3806,7 @@ async function ensureDocCaches(){
   }
 }
 
-/** แสดงใบเสนอราคา/ใบวางบิล/ใบเสร็จ/สัญญา ที่ผูกกับสำนวนนี้ พร้อมยอดรวม */
+/** สรุปการเงินของสำนวน — เสนอราคา / วางบิล / รับแล้ว / ค้าง + เอกสารทุกใบ กดเปิด/พิมพ์ซ้ำได้ + งวดตามสัญญา */
 async function renderCaseDocs(caseId){
   const box = document.getElementById("caseDocsBox");
   if(!box) return;
@@ -3764,50 +3814,75 @@ async function renderCaseDocs(caseId){
 
   await ensureDocCaches();
   if(!document.getElementById("caseDocsBox")) return;   // ผู้ใช้เปิดหน้าอื่นไปแล้ว
+  const box2 = document.getElementById("caseDocsBox");
 
   const pick = tab => (HIST_CFG_[tab].cache()||[]).filter(d=>d.caseId === caseId);
   const quotes = pick("quote"), bills = pick("billing"),
         rcpts  = pick("receipt"), ctrs = pick("contract");
   const all = quotes.length + bills.length + rcpts.length + ctrs.length;
   if(!all){
-    box.innerHTML = `<div class="items-hint">ยังไม่มีเอกสารที่ผูกกับสำนวนนี้ — ตอนออกใบเสนอราคา/ใบวางบิล/ใบเสร็จ ให้เลือกสำนวนนี้ในช่อง “ผูกกับสำนวนคดี”</div>`;
+    box2.innerHTML = `<div class="items-hint">ยังไม่มีเอกสารที่ผูกกับสำนวนนี้ — ตอนออกใบเสนอราคา/ใบวางบิล/ใบเสร็จ/สัญญา ให้เลือกสำนวนนี้ในช่อง “ผูกกับสำนวนคดี”</div>`;
     return;
   }
 
-  const billed = bills.reduce((t,d)=>t+(isVoided(d)?0:(parseFloat(d.total)||0)), 0);
-  const paid   = bills.reduce((t,d)=>t+paidOf(d), 0);
+  const live = d=>!isVoided(d);
+  const amt  = d=>parseFloat(d.total)||0;
+  const quoted = quotes.filter(live).reduce((t,d)=>t+amt(d), 0);
+  const billed = bills.filter(live).reduce((t,d)=>t+amt(d), 0);
   const owed   = bills.reduce((t,d)=>t+owedOf(d), 0);
-  const recv   = rcpts.reduce((t,d)=>t+(isVoided(d)?0:(parseFloat(d.total)||0)), 0);
+  // รับแล้ว = ที่ตัดยอดบิลแล้ว + ใบเสร็จที่ไม่ได้ออกจากบิล (กันนับซ้ำ)
+  const received = bills.reduce((t,d)=>t+paidOf(d), 0)
+                 + rcpts.filter(d=>live(d) && !d.srcId).reduce((t,d)=>t+amt(d), 0);
 
+  const btn = (label, js)=>`<button class="btn ghost sm" onclick="event.stopPropagation();${js}">${label}</button>`;
   const line = (d, kind)=>{
     let note = "";
     if(kind === "billing"){
       note = isVoided(d) ? "ยกเลิก"
         : (isPaid(d) ? "ชำระแล้ว"
-        : (isPartlyPaid(d) ? `ค้าง ${fmtMoney(owedOf(d))}`
+        : (isPartlyPaid(d) ? `ชำระ ${fmtMoney(paidOf(d))} · ค้าง ${fmtMoney(owedOf(d))}`
         : (isOverdue(d) ? "เกินกำหนด" : "ค้างชำระ")));
     }else if(isVoided(d)) note = "ยกเลิก";
+    let extra = "";
+    if(kind === "billing" && live(d) && owedOf(d) > 0.005) extra += btn("ออกใบเสร็จ", `receiptFromBillingId('${esc(d.id)}')`);
+    if(kind === "contract" && live(d) && (d.installments||[]).length) extra += btn("ตั้งเตือนงวด", `openInstallmentEditor('${esc(d.id)}')`);
     return `<div class="hist-row" style="padding:8px 4px;${isVoided(d)?"opacity:.55;":""}">
       <div class="hi-main">
         <div class="hi-no">${esc(d.docNo)}${note?` · ${esc(note)}`:""}</div>
-        <div class="hi-sub">${docDateThai(d.date)} · ${esc(HIST_CFG_[kind].label)}</div>
+        <div class="hi-sub">${docDateThai(d.date)} · ${esc(HIST_CFG_[kind].label)}${d.srcDocNo?` · จาก ${esc(d.srcDocNo)}`:""}</div>
       </div>
       <div class="hi-amt">${fmtMoney(d.total)} บาท</div>
+      ${extra}${btn("เปิด / พิมพ์ซ้ำ", `reprintDocById('${kind}','${esc(d.id)}')`)}
     </div>`;
   };
+  const instLines = ct=>{
+    if(isVoided(ct) || !(ct.installments||[]).length) return "";
+    return `<div style="margin:0 0 8px 18px;border-left:2px solid var(--line);padding-left:10px;">` +
+      ct.installments.map((it,i)=>{
+        const n = i+1, st = instState(ct, it, n);
+        return `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:4px 0;font-size:13px;">
+          <span style="flex:1;min-width:180px;">งวดที่ ${n} · ${fmtMoney(it.a)} บาท${st.due?` · ครบกำหนด ${docDateThai(st.due)}`:` · ${esc(it.d)}`}
+            <br><span style="color:${st.color};">${esc(st.label)}</span></span>
+          ${st.bill ? "" : btn("ออกใบวางบิล", `billFromInstallment('${esc(ct.id)}',${n})`)}
+        </div>`;
+      }).join("") + `</div>`;
+  };
+  const section = (title, list, kind)=> list.length
+    ? `<div class="items-hint" style="margin:10px 0 2px;font-weight:600;">${title}</div>` +
+      list.map(d=>line(d,kind) + (kind === "contract" ? instLines(d) : "")).join("")
+    : "";
 
-  box.innerHTML = `
+  box2.innerHTML = `
     <div class="sumcards" style="margin-bottom:10px;">
-      ${sumCard("วางบิลไป", fmtMoney(billed))}
-      ${sumCard("เก็บได้แล้ว", fmtMoney(paid), "hi")}
+      ${sumCard("เสนอราคา", fmtMoney(quoted))}
+      ${sumCard("วางบิล", fmtMoney(billed))}
+      ${sumCard("รับแล้ว", fmtMoney(received), "hi")}
       ${sumCard("ค้างชำระ", fmtMoney(owed))}
-      ${sumCard("ออกใบเสร็จรวม", fmtMoney(recv))}
     </div>
-    ${ctrs.map(d=>line(d,"contract")).join("")}
-    ${quotes.map(d=>line(d,"quote")).join("")}
-    ${bills.map(d=>line(d,"billing")).join("")}
-    ${rcpts.map(d=>line(d,"receipt")).join("")}
-    <div class="items-hint" style="margin-top:8px;">แก้ไข พิมพ์ซ้ำ หรือรับชำระ ได้ที่ปุ่มประวัติเอกสารด้านบน</div>`;
+    ${section("สัญญาจ้าง และงวดชำระ", ctrs, "contract")}
+    ${section("ใบเสนอราคา", quotes, "quote")}
+    ${section("ใบวางบิล", bills, "billing")}
+    ${section("ใบเสร็จรับเงิน", rcpts, "receipt")}`;
 }
 
 /* ดึงประวัติการแก้ไขของสำนวนนี้จากชีตกลาง (เห็นการแก้ไขของทุกคนในทีม) */
@@ -5352,7 +5427,9 @@ const DOC_MODAL_MAP_ = {
   billing:  { bg: "billingModalBg",  date: "b-date" },
   contract: { bg: "contractModalBg", date: "k-date" },
   lawyerfee:{ bg: "lawyerFeeModalBg", date: "lf-date" },
-  history:  { bg: "historyModalBg",  date: null }
+  history:  { bg: "historyModalBg",  date: null },
+  settings: { bg: "settingsModalBg", date: null },
+  inst:     { bg: "instModalBg",     date: null }
 };
 /* ---------- ผูกเอกสารกับสำนวนคดี ---------- */
 
@@ -5485,6 +5562,8 @@ function openDocModal(type){
     const it = document.getElementById("r-issuer-tax");
     if(it && !it.value){ try{ it.value = localStorage.getItem("receiptIssuerTaxId") || ""; }catch(e){} }
   }
+  if(type === "billing") applyBillingBankDefault();
+  if(type === "settings") renderSettingsUI();
   bg.classList.add("show");
   if(type === "history") loadDocHistory(currentHistTab);
 }
@@ -5496,6 +5575,7 @@ document.getElementById("btnReceipt").addEventListener("click", ()=>{ docSource.
 document.getElementById("btnBilling").addEventListener("click", ()=>{ docSource.billing=null; openDocModal("billing"); });
 document.getElementById("btnContract").addEventListener("click", ()=>openDocModal("contract"));
 document.getElementById("btnLawyerFee").addEventListener("click", ()=>openDocModal("lawyerfee"));
+document.getElementById("btnSettings").addEventListener("click", ()=>openDocModal("settings"));
 document.getElementById("btnDocHistory").addEventListener("click", ()=>{
   const s = document.getElementById("search-hist");
   if(s) s.value = "";
@@ -5532,14 +5612,19 @@ document.getElementById("k-side").addEventListener("change", (e)=>{
 // เลือกวิธีชำระในใบเสร็จ → โชว์ช่องธนาคาร/เลขบัญชี เฉพาะตอนเลือก "โอนเงิน"
 document.getElementById("r-method").addEventListener("change", (e)=>{
   document.getElementById("r-bank-wrap").style.display = (e.target.value === "โอนเงิน") ? "" : "none";
+  if(e.target.value === "โอนเงิน" && !document.querySelector("#r-bank-seg button.on")){
+    const def = document.querySelector("#r-bank-seg button[data-def='1']");
+    if(def) def.click();
+  }
 });
-// ปุ่มเลือกธนาคาร (เลือกได้ทีละธนาคาร)
-document.querySelectorAll("#r-bank-seg button").forEach(btn=>{
-  btn.addEventListener("click", ()=>{
-    document.querySelectorAll("#r-bank-seg button").forEach(b=>b.classList.remove("on"));
-    btn.classList.add("on");
-    document.getElementById("r-bank-other").style.display = (btn.dataset.v === "อื่นๆ") ? "" : "none";
-  });
+// ปุ่มเลือกธนาคาร (เลือกได้ทีละธนาคาร) — ปุ่มสร้างจากบัญชีที่ตั้งค่าไว้ จึงผูกแบบ delegate
+document.getElementById("r-bank-seg").addEventListener("click", (e)=>{
+  const btn = e.target.closest("button");
+  if(!btn) return;
+  document.querySelectorAll("#r-bank-seg button").forEach(b=>b.classList.remove("on"));
+  btn.classList.add("on");
+  document.getElementById("r-bank-other").style.display = (btn.dataset.v === "อื่นๆ") ? "" : "none";
+  if(btn.dataset.acc !== undefined) document.getElementById("r-bank-acc").value = btn.dataset.acc;
 });
 
 /** แถวยอดรวมในตาราง — ยอดเป็นตัวหนังสืออยู่ซ้าย ป้ายชื่อยอดอยู่ขวา อยู่ในตารางแถวเดียวกัน */
@@ -5766,6 +5851,7 @@ function buildQuoteBody(data){
         ใช้ได้ถึง ${docDateThai(data.validUntil)}
       </div>
     </div>
+    ${docCaseLine(data) ? `<div class="terms" style="margin-bottom:10px;"><b>อ้างถึงคดี</b> ${esc(docCaseLine(data))}</div>` : ``}
     ${data.scope ? `<div class="terms" style="margin-bottom:12px;"><b>ขอบเขตการทำงาน</b><br>${esc(data.scope).replace(/\n/g,"<br>")}</div>` : ``}
     <table>
       <thead><tr><th style="width:8%">ที่</th><th>รายการ</th><th style="width:30%">จำนวนเงิน (บาท)</th></tr></thead>
@@ -5857,6 +5943,7 @@ function buildReceiptBody(data){
     <div class="oneline" data-minscale="0.6" style="font-size:13.5pt;margin:-2px 0 0;"><b>ได้รับเงินจาก:</b> ${esc(data.payer)}</div>
     ${data.payerAddr ? `<div class="oneline" data-minscale="0.7" style="font-size:13.5pt;"><b>ที่อยู่:</b> ${esc(data.payerAddr).replace(/\n/g," ")}</div>` : ``}
     ${data.payerTaxId ? `<div class="oneline" data-minscale="0.7" style="font-size:13.5pt;"><b>เลขประจำตัวผู้เสียภาษี:</b> ${esc(data.payerTaxId)}${data.payerBranch ? " &nbsp;<b>สาขา:</b> "+esc(data.payerBranch) : ""}</div>` : ``}
+    ${docCaseLine(data) ? `<div style="font-size:13.5pt;"><b>อ้างถึงคดี:</b> ${esc(docCaseLine(data))}</div>` : ``}
     <div style="height:6px;"></div>
     <table>
       <thead><tr><th style="width:8%">ที่</th><th>รายการ</th><th style="width:30%">จำนวนเงิน (บาท)</th></tr></thead>
@@ -5868,6 +5955,7 @@ function buildReceiptBody(data){
         : totalRowHtml("รวมเป็นเงินทั้งสิ้น", total)}
       </tfoot>
     </table>
+    ${receiptBalanceHtml(data, total)}
     <div class="terms" style="font-size:11pt;margin-top:4px;">${data.issuerTaxId ? `เลขประจำตัวผู้เสียภาษีผู้ออกใบเสร็จ ${esc(data.issuerTaxId)} · ` : ``}ผู้ออกใบเสร็จมิได้จดทะเบียนภาษีมูลค่าเพิ่ม</div>
     <div class="signblock"><div class="line"></div><div class="who">( ${esc(data.lawyer)} ) ผู้รับเงิน</div></div>
   `;
@@ -5921,7 +6009,8 @@ async function confirmReceipt(btn){
   }
   docSource.receipt = null;
 
-  const body = buildReceiptBody(Object.assign({}, record, {docNo: result.docNo}));
+  const body = buildReceiptBody(Object.assign({}, record, {docNo: result.docNo,
+    billTotal: result.billTotal, billPaidBefore: result.billPaidBefore, billBalance: result.billBalance}));
   closeDocModal("receipt");
   openDocPrintWindow("ใบเสร็จรับเงิน "+result.docNo, body);
 }
@@ -6104,6 +6193,7 @@ async function confirmBilling(btn){
   catch(e){ toast("บันทึกไม่สำเร็จ: "+e.message); return; }
   histBillingsCache = null;
   docSource.billing = null;
+  fetchBillingsBg();                 // โหลดใบวางบิลใหม่ เตือนงวดบนหน้าแรกจะหายเมื่อวางบิลแล้ว
 
   const body = buildBillingBody(Object.assign({}, record, {docNo: result.docNo}));
   closeDocModal("billing");
@@ -6775,7 +6865,10 @@ async function confirmContract(btn){
     const amt = parseFloat(document.getElementById("k-a"+i).value) || 0;
     if(amt <= 0) continue;
     const dtxt = document.getElementById("k-d"+i).value.trim() || "-";
-    installments.push({ d: dtxt, a: amt });
+    const mode = document.getElementById("k-m"+i).value;
+    installments.push({ d: dtxt, a: amt, mode,
+      due:  mode === "date" ? (document.getElementById("k-due"+i).value || "") : "",
+      appt: mode === "appt" ? (document.getElementById("k-ap"+i).value || "") : "" });
   }
 
   if(!client){ toast("กรุณาใส่ชื่อผู้ว่าจ้างก่อนค่ะ"); return; }
@@ -6783,6 +6876,9 @@ async function confirmContract(btn){
   if(!total){ toast("กรุณาใส่ค่าปรึกษากฎหมายรวมก่อนค่ะ"); return; }
   if(!stages.length){ toast("กรุณาติ๊กอย่างน้อย 1 ชั้นในการว่าจ้างก่อนค่ะ"); return; }
   if(!installments.length){ toast("กรุณาใส่งวดชำระอย่างน้อย 1 งวดก่อนค่ะ"); return; }
+  if(installments.some(it=>it.mode === "appt") && !docCaseFields("k").caseId){
+    toast("งวดที่เตือน “ตามนัดในสำนวน” ต้องผูกสัญญากับสำนวนก่อนค่ะ"); return;
+  }
 
   const record = { date:dateISO, client, address:addr, caseNo, court, plaintiff, defendant,
                     side, stages, total, installments, note, appealFee, dikaFee, lawyer };
@@ -6803,6 +6899,340 @@ async function confirmContract(btn){
   openDocPrintWindow("สัญญาจ้างทำของ "+result.docNo, wrapped, {scale:CONTRACT_FONT_SCALE});
 }
 
+
+
+/* ============================================================
+   ตั้งค่า — รายชื่อทนายความ / บัญชีธนาคาร (เก็บที่ชีต "ตั้งค่า" ใช้ร่วมทุกเครื่อง)
+   ============================================================ */
+const FALLBACK_BANKS_ = [{bank:"กรุงไทย", accNo:""}, {bank:"กสิกรไทย", accNo:""}];
+
+function bankShort(name){ return String(name||"").replace(/^ธนาคาร/, "").trim(); }
+function defaultOf(list){ return (list||[]).find(x=>x.isDefault) || null; }
+
+function applySettings(s){
+  settings = { lawyers: Array.isArray(s && s.lawyers) ? s.lawyers : [],
+               banks:   Array.isArray(s && s.banks)   ? s.banks   : [] };
+  // รายชื่อให้เลือกในทุกช่องชื่อทนาย
+  const dl = document.getElementById("dl-lawyers");
+  if(dl) dl.innerHTML = settings.lawyers.filter(l=>l.name)
+    .map(l=>`<option value="${esc(l.name)}">${esc([l.phone, l.license ? "ใบอนุญาต "+l.license : ""].filter(Boolean).join(" · "))}</option>`).join("");
+  // ทนายประจำ — แทนชื่อตั้งต้นในใบเสนอราคา ใบเสร็จ ใบวางบิล (ช่องที่ผู้ใช้พิมพ์เองแล้วไม่ทับ)
+  const defL = defaultOf(settings.lawyers);
+  if(defL && defL.name){
+    ["q-lawyer","r-lawyer","b-lawyer"].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el && el.dataset.touched !== "1") el.value = defL.name;
+    });
+  }
+  renderReceiptBanks();
+  renderBillingBanks();
+}
+
+/** ปุ่มเลือกธนาคารในใบเสร็จ — ใช้บัญชีที่ตั้งค่าไว้ ถ้ายังไม่ตั้งใช้ชุดเดิม */
+function renderReceiptBanks(){
+  const seg = document.getElementById("r-bank-seg");
+  if(!seg) return;
+  const list = settings.banks.length ? settings.banks : FALLBACK_BANKS_;
+  seg.innerHTML = list.map(b=>{
+    const tail = b.accNo ? " · " + String(b.accNo).replace(/\D/g,"").slice(-4) : "";
+    const acc = settings.banks.length ? ` data-acc="${esc(b.accNo||"")}"` : "";
+    return `<button type="button" data-v="${esc(bankShort(b.bank))}"${acc}${b.isDefault?' data-def="1"':""}>${esc(bankShort(b.bank))}${esc(tail)}</button>`;
+  }).join("") + `<button type="button" data-v="อื่นๆ">อื่น ๆ</button>`;
+}
+
+/** รายการบัญชีในใบวางบิล */
+function renderBillingBanks(){
+  const sel = document.getElementById("b-bank");
+  if(!sel) return;
+  sel.style.display = settings.banks.length ? "" : "none";
+  sel.innerHTML = `<option value="">— เลือกบัญชีที่บันทึกไว้ —</option>` +
+    settings.banks.map((b,i)=>`<option value="${i}">${esc(bankShort(b.bank))} ${esc(b.accNo||"")}${b.accName?" · "+esc(b.accName):""}</option>`).join("");
+}
+function bankPayText(b){
+  return `โอนเข้าบัญชี ธนาคาร${bankShort(b.bank)} เลขที่ ${b.accNo||""}${b.accName ? " ชื่อบัญชี "+b.accName : ""}`;
+}
+function onBillBankPick(){
+  const sel = document.getElementById("b-bank");
+  const b = settings.banks[parseInt(sel.value,10)];
+  if(b) document.getElementById("b-payinfo").value = bankPayText(b);
+}
+function applyBillingBankDefault(){
+  const pay = document.getElementById("b-payinfo");
+  const sel = document.getElementById("b-bank");
+  if(!pay || pay.value.trim()) return;
+  const i = settings.banks.findIndex(b=>b.isDefault);
+  if(i < 0) return;
+  pay.value = bankPayText(settings.banks[i]);
+  if(sel) sel.value = String(i);
+}
+
+// ช่องที่ผู้ใช้แก้เองแล้ว ไม่ต้องเอาทนายประจำมาทับ
+["q-lawyer","r-lawyer","b-lawyer"].forEach(id=>{
+  const el = document.getElementById(id);
+  if(el) el.addEventListener("input", ()=>{ el.dataset.touched = "1"; });
+});
+// เลือกทนายจากรายชื่อ → เติมเลขใบอนุญาต / เบอร์โทรให้ (เฉพาะช่องที่ยังว่าง)
+document.addEventListener("change", (e)=>{
+  const t = e.target;
+  if(!t || !t.id) return;
+  const l = settings.lawyers.find(x=>x.name === String(t.value||"").trim());
+  if(!l) return;
+  const fill = (id,v)=>{ const el=document.getElementById(id); if(el && !el.value && v) el.value = v; };
+  if(t.id === "lf-lawyer") fill("lf-license", l.license);
+  if(t.id === "f-lawyer")  fill("f-lawyerPhone", l.phone);
+});
+
+/* ---- หน้าตั้งค่า ---- */
+const SETTING_FIELDS_ = {
+  lawyers: [ {k:"name", ph:"ชื่อ-สกุล เช่น นางสาวนภัสนันท์ อภิรมย์ศศิธร", w:"2"},
+             {k:"license", ph:"เลขใบอนุญาต", w:"1"}, {k:"phone", ph:"เบอร์โทร", w:"1"} ],
+  banks:   [ {k:"bank", ph:"ธนาคาร เช่น กสิกรไทย", w:"1"},
+             {k:"accNo", ph:"เลขที่บัญชี", w:"1"}, {k:"accName", ph:"ชื่อบัญชี", w:"2"} ]
+};
+let settingsDraft_ = null;
+function renderSettingsUI(){
+  settingsDraft_ = { lawyers: settings.lawyers.map(x=>Object.assign({},x)),
+                     banks:   settings.banks.map(x=>Object.assign({},x)) };
+  ["lawyers","banks"].forEach(drawSettingRows);
+}
+function drawSettingRows(kind){
+  const box = document.getElementById("set-"+kind);
+  const list = settingsDraft_[kind];
+  if(!list.length){ box.innerHTML = `<div class="items-hint">ยังไม่มีรายการ</div>`; return; }
+  box.innerHTML = list.map((row,i)=>`<div class="drow" style="align-items:center;gap:6px;">
+      ${SETTING_FIELDS_[kind].map(f=>`<input style="flex:${f.w};min-width:0;" placeholder="${esc(f.ph)}" value="${esc(row[f.k]||"")}"
+          oninput="settingsDraft_['${kind}'][${i}]['${f.k}']=this.value">`).join("")}
+      <button type="button" class="btn ghost sm" title="ตั้งเป็นค่าตั้งต้น" onclick="setSettingDefault('${kind}',${i})"
+        style="${row.isDefault?"color:#b07d1a;font-weight:700;":""}">${row.isDefault?"★ ประจำ":"☆"}</button>
+      <button type="button" class="btn ghost sm" onclick="removeSettingRow('${kind}',${i})">ลบ</button>
+    </div>`).join("");
+}
+function addSettingRow(kind){
+  settingsDraft_[kind].push({ isDefault: !settingsDraft_[kind].length });
+  drawSettingRows(kind);
+}
+function removeSettingRow(kind, i){
+  settingsDraft_[kind].splice(i,1);
+  drawSettingRows(kind);
+}
+function setSettingDefault(kind, i){
+  settingsDraft_[kind].forEach((r,j)=>{ r.isDefault = (j === i); });
+  drawSettingRows(kind);
+}
+async function saveSettingsUI(btn){
+  const clean = (kind, key)=> settingsDraft_[kind]
+    .map(r=>{ const o = {}; SETTING_FIELDS_[kind].forEach(f=>o[f.k] = String(r[f.k]||"").trim()); o.isDefault = !!r.isDefault; return o; })
+    .filter(r=>r[key]);
+  const lawyers = clean("lawyers","name"), banks = clean("banks","bank");
+  try{
+    await withBusy(btn, "กำลังบันทึก…", async ()=>{
+      await api("saveSettings", {key:"lawyers", value:lawyers});
+      await api("saveSettings", {key:"banks", value:banks});
+      return true;
+    });
+  }catch(e){ toast("บันทึกไม่สำเร็จ: "+e.message); return; }
+  applySettings({lawyers, banks});
+  save();
+  closeDocModal("settings");
+  toast("บันทึกการตั้งค่าแล้ว");
+}
+
+/* ---------- ข้อมูลคดีบนเอกสาร ---------- */
+/** "เลขคดี · ศาล · ชื่อคดี" ของสำนวนที่ผูกไว้ — ว่างถ้าไม่ได้ผูก */
+function docCaseLine(data){
+  if(!data || (!data.caseId && !data.caseRef)) return "";
+  const c = data.caseId ? cases.find(x=>x.id === data.caseId) : null;
+  if(c) return [c.caseNumber, c.court, partiesDisplay(c)].filter(Boolean).join(" · ");
+  return data.caseRef || "";
+}
+
+/** ยอดตามใบวางบิล / ชำระแล้วรวม / คงค้าง — พิมพ์ใต้ยอดรวมของใบเสร็จที่ออกจากใบวางบิล */
+function receiptBalanceHtml(data, thisTotal){
+  if(!data.srcDocNo || data.billTotal === "" || data.billTotal == null) return "";
+  const billTotal = parseFloat(data.billTotal) || 0;
+  if(billTotal <= 0) return "";
+  const paidAll = (parseFloat(data.billPaidBefore) || 0) + (parseFloat(thisTotal) || 0);
+  const bal = (data.billBalance === "" || data.billBalance == null)
+    ? Math.max(0, billTotal - paidAll) : (parseFloat(data.billBalance) || 0);
+  const line = (l, v, bold)=>`<div style="display:flex;justify-content:space-between;gap:24px;${bold?"font-weight:700;":""}">
+      <span>${l}</span><span style="white-space:nowrap;">${fmtMoney(v)} บาท</span></div>`;
+  return `<div style="margin:8px 0 0 auto;width:62%;font-size:13pt;line-height:1.4;border:1px solid #999;padding:4px 10px;">
+      ${line("ยอดตามใบวางบิลเลขที่ "+esc(data.srcDocNo), billTotal)}
+      ${line("ชำระแล้วรวม (รวมครั้งนี้)", paidAll)}
+      ${line("คงค้าง", bal, true)}
+    </div>`;
+}
+
+/* ============================================================
+   งวดชำระตามสัญญาจ้าง — เตือนให้วางบิลล่วงหน้า 30 วันก่อนถึงกำหนด
+   งวดหนึ่ง: { d:"ข้อความในสัญญา", a:จำนวนเงิน, mode:"date"|"appt"|"", due:"yyyy-mm-dd", appt:"นัดสืบพยานโจทก์" }
+   ============================================================ */
+const INST_WARN_DAYS = 30;
+const APPT_TYPES_ = STATUS_OPTIONS.filter(s=>s.indexOf("นัด") === 0);
+
+function apptTypeOptions(sel){
+  return APPT_TYPES_.map(t=>`<option${t===sel?" selected":""}>${esc(t)}</option>`).join("");
+}
+// เติมตัวเลือกนัดในฟอร์มสัญญา และสลับช่องตามแบบเตือน
+document.querySelectorAll("#contractModalBg .appt-type-sel").forEach(s=>{ s.innerHTML = apptTypeOptions(); });
+document.querySelectorAll("#contractModalBg .inst-mode").forEach(s=>{
+  s.addEventListener("change", ()=>{
+    const i = s.dataset.i;
+    document.getElementById("k-dw"+i).style.display = s.value === "date" ? "" : "none";
+    document.getElementById("k-aw"+i).style.display = s.value === "appt" ? "" : "none";
+  });
+});
+
+/** วันครบกำหนดของงวด — แบบตามนัด ใช้นัดแรกที่ตรงชื่อนัด นับตั้งแต่วันทำสัญญา */
+function instDue(ct, it){
+  if(!it) return "";
+  if(it.mode === "date") return it.due || "";
+  if(it.mode !== "appt" || !it.appt) return "";
+  const c = cases.find(x=>x.id === ct.caseId);
+  if(!c) return "";
+  const from = ct.date || "";
+  const hits = (c.appointments||[])
+    .filter(a=>a.date && a.date >= from && String(a.note||"").indexOf(it.appt) !== -1)
+    .map(a=>a.date).sort();
+  if(hits.length) return hits[0];
+  if(String(c.status||"").indexOf(it.appt) !== -1 && c.nextAppointment && c.nextAppointment >= from) return c.nextAppointment;
+  return "";
+}
+function instBilling(ct, n){
+  return (histBillingsCache||[]).find(b=>b.srcId === ct.id && String(b.srcInst) === String(n) && !isVoided(b)) || null;
+}
+function instState(ct, it, n){
+  const due = instDue(ct, it), bill = instBilling(ct, n);
+  const days = due ? daysUntil(due) : null;
+  let label, color = "var(--ink-muted)";
+  if(bill){ label = isPaid(bill) ? "ชำระแล้ว ("+bill.docNo+")" : "วางบิลแล้ว "+bill.docNo; color = "#2b3488"; }
+  else if(!it.mode) label = "ไม่ได้ตั้งเตือน";
+  else if(!due) label = it.mode === "appt" ? "ยังไม่มีวัน"+it.appt+"ในสำนวน" : "ยังไม่ระบุวัน";
+  else if(days < 0){ label = "เลยกำหนดมา "+(-days)+" วัน — ยังไม่วางบิล"; color = "#b3261e"; }
+  else if(days <= INST_WARN_DAYS){ label = "ถึงเวลาวางบิล · อีก "+days+" วัน"; color = "#b07d1a"; }
+  else label = "ยังไม่ถึง · อีก "+days+" วัน";
+  return { due, bill, days, label, color, need: !bill && !!due && days !== null && days <= INST_WARN_DAYS };
+}
+/** งวดที่ต้องวางบิลแล้ว (ภายใน 30 วัน หรือเลยมาแล้วแต่ยังไม่วาง) ทุกสัญญา */
+function dueInstallments(){
+  if(!histContractsCache || !histBillingsCache) return [];
+  const out = [];
+  histContractsCache.filter(ct=>!isVoided(ct)).forEach(ct=>{
+    (ct.installments||[]).forEach((it,i)=>{
+      const st = instState(ct, it, i+1);
+      if(st.need) out.push({ct, it, n:i+1, st});
+    });
+  });
+  return out.sort((a,b)=>a.st.due.localeCompare(b.st.due));
+}
+let instFetching_ = false;
+function dueInstallmentsHTML(){
+  if(TEAM_MODE && session.role !== "admin") return "";
+  if(!histContractsCache && !instFetching_){
+    // เพิ่งออกสัญญาใหม่ แคชถูกล้าง — โหลดเบื้องหลังแล้ววาดหน้าแรกใหม่
+    instFetching_ = true;
+    api("listContracts").then(r=>{ histContractsCache = r.contracts || []; save(); }).catch(()=>{})
+      .finally(()=>{ instFetching_ = false;
+        const home = document.getElementById("view-home");
+        if(home && home.classList.contains("active")) renderHome(); });
+  }
+  const list = dueInstallments();
+  if(!list.length) return "";
+  return `<div class="section-label">งวดค่าจ้างที่ต้องวางบิล (ล่วงหน้า ${toThaiNum(INST_WARN_DAYS)} วัน)</div>` +
+    list.map(({ct,it,n,st})=>`<div class="case-card">
+      <span class="status-dot ${st.days < 0 ? "dot-upcoming" : "dot-progress"}"></span>
+      <div class="case-main">
+        <div class="case-id">${esc(ct.docNo)} · งวดที่ ${n} · ครบกำหนด ${docDateThai(st.due)}${it.mode==="appt"?" ("+esc(it.appt)+")":""}</div>
+        <div class="case-parties">${esc(ct.client||"")}</div>
+        <div class="case-sub" style="color:${st.color};">${esc(st.label)}${ct.caseNo?" · "+esc(ct.caseNo):""}</div>
+      </div>
+      <div class="case-appt"><b>${fmtMoney(it.a)}</b><small>บาท</small>
+        <button class="btn sm" style="margin-top:6px;pointer-events:auto;" onclick="event.stopPropagation();billFromInstallment('${esc(ct.id)}',${n})">ออกใบวางบิล</button></div>
+    </div>`).join("");
+}
+
+/** ออกใบวางบิลของงวดชำระ — เติมข้อมูลจากสัญญาให้ กำหนดชำระ = วันครบกำหนดงวด */
+function billFromInstallment(ctId, n){
+  const ct = (histContractsCache||[]).find(x=>x.id === ctId);
+  const it = ct && (ct.installments||[])[n-1];
+  if(!it){ toast("ไม่พบงวดนี้ — กดโหลดข้อมูลใหม่แล้วลองอีกครั้ง"); return; }
+  const st = instState(ct, it, n);
+  closeDocModal("history");
+  clearDocForm("b", ["client","addr","contact","caseno","court","items","note","payinfo"]);
+  document.getElementById("b-date").value = todayISO();
+  syncDatePicker(document.getElementById("b-date"));
+  document.getElementById("b-client").value = ct.client || "";
+  document.getElementById("b-addr").value   = ct.address || "";
+  document.getElementById("b-caseno").value = ct.caseNo || "";
+  document.getElementById("b-court").value  = ct.court || "";
+  document.getElementById("b-vat").checked  = false;
+  document.getElementById("b-items").value  = `ค่าปรึกษากฎหมาย งวดที่ ${n} ตามสัญญาจ้างทำของเลขที่ ${ct.docNo} : ${it.a}`;
+  document.getElementById("b-note").value   = `อ้างถึงสัญญาจ้างทำของเลขที่ ${ct.docNo} ลงวันที่ ${docDateThai(ct.date)} งวดที่ ${n} ชำระภายในวันที่ ${it.d}`;
+  document.getElementById("b-creditdays").value = (st.due && st.days > 0) ? st.days : 15;
+  docSource.billing = { srcId:ct.id, srcDocNo:ct.docNo, srcInst:n };
+  openDocModal("billing");
+  const sel = document.getElementById("b-case");
+  if(sel) sel.value = ct.caseId || "";
+  toast(`ดึงงวดที่ ${n} จากสัญญา ${ct.docNo} มาแล้ว ตรวจดูก่อนพิมพ์นะคะ`);
+}
+
+/* ---- แก้การตั้งเตือนงวดของสัญญาที่ออกไปแล้ว ---- */
+let instEditId_ = null;
+function openInstallmentEditor(ctId){
+  const ct = (histContractsCache||[]).find(x=>x.id === ctId);
+  if(!ct) return;
+  instEditId_ = ctId;
+  document.getElementById("inst-title").textContent = "ตั้งเตือนงวดชำระ — " + ct.docNo;
+  const box = document.getElementById("inst-rows");
+  box.innerHTML = (ct.installments||[]).map((it,i)=>`<fieldset>
+      <legend>งวดที่ ${i+1} · ${fmtMoney(it.a)} บาท · ${esc(it.d)}</legend>
+      <div class="drow">
+        <div class="dfield"><label>เตือนวางบิล</label>
+          <select id="ie-m${i}" onchange="document.getElementById('ie-dw${i}').style.display=this.value==='date'?'':'none';document.getElementById('ie-aw${i}').style.display=this.value==='appt'?'':'none';">
+            <option value="">ไม่เตือน</option>
+            <option value="date"${it.mode==="date"?" selected":""}>ตามวันที่</option>
+            <option value="appt"${it.mode==="appt"?" selected":""}${ct.caseId?"":" disabled"}>ตามนัดในสำนวน${ct.caseId?"":" (สัญญาไม่ได้ผูกสำนวน)"}</option>
+          </select></div>
+        <div class="dfield" id="ie-dw${i}" style="${it.mode==="date"?"":"display:none;"}"><label>วันครบกำหนดงวด</label>
+          <div class="tdp" data-tdp><input type="text" class="tdp-display" readonly placeholder="เลือกวันที่"><input type="hidden" class="tdp-value" id="ie-due${i}" value="${esc(it.due||"")}"><div class="tdp-pop"></div></div></div>
+        <div class="dfield" id="ie-aw${i}" style="${it.mode==="appt"?"":"display:none;"}"><label>นัดที่ใช้นับ</label>
+          <select id="ie-ap${i}">${apptTypeOptions(it.appt)}</select></div>
+      </div></fieldset>`).join("") || `<div class="items-hint">สัญญานี้ไม่มีงวดชำระ</div>`;
+  initDatePickers(box);
+  box.querySelectorAll(".tdp-value").forEach(syncDatePicker);
+  openDocModal("inst");
+}
+async function saveInstallmentsUI(btn){
+  const ct = (histContractsCache||[]).find(x=>x.id === instEditId_);
+  if(!ct) return;
+  const installments = (ct.installments||[]).map((it,i)=>{
+    const mode = document.getElementById("ie-m"+i).value;
+    return { mode,
+      due:  mode === "date" ? (document.getElementById("ie-due"+i).value || "") : "",
+      appt: mode === "appt" ? document.getElementById("ie-ap"+i).value : "" };
+  });
+  let r;
+  try{ r = await withBusy(btn, "กำลังบันทึก…", ()=>api("setContractInstallments", {id:ct.id, installments})); }
+  catch(e){ toast("บันทึกไม่สำเร็จ: "+e.message); return; }
+  if(!r) return;
+  ct.installments = r.installments || ct.installments;
+  save();
+  closeDocModal("inst");
+  toast("ตั้งเตือนงวดของ " + ct.docNo + " แล้ว");
+  if(lastOpenedId) renderCaseDocs(lastOpenedId);
+  const home = document.getElementById("view-home");
+  if(home && home.classList.contains("active")) renderHome();
+}
+
+/** เปิด/พิมพ์ซ้ำเอกสารจากรหัส (ใช้ในหน้าสำนวน) */
+function reprintDocById(tab, id){
+  const i = (HIST_CFG_[tab].cache()||[]).findIndex(d=>d.id === id);
+  if(i >= 0) reprintDoc(tab, i);
+}
+function receiptFromBillingId(id){
+  const i = (HIST_CFG_.billing.cache()||[]).findIndex(d=>d.id === id);
+  if(i >= 0) receiptFromBilling(i);
+}
 
 /* ============================================================
    กำหนดอุทธรณ์ / ฎีกา — นับ ๑ เดือนจากวันอ่านคำพิพากษา
@@ -7245,6 +7675,7 @@ function renderHome(){
       + evWeek.map(e=> evRow(e, `<b>${esc(evLabel(e))}</b><small>${daysAway(e.date)}</small>`)).join("")
     : `<div class="empty"><b>ไม่มีนัดใน 7 วันข้างหน้า</b>ดูทั้งเดือนได้ที่แท็บตารางนัดรายเดือน</div>`;
 
+  html += dueInstallmentsHTML();
   html += overdueBillsHTML();
 
   el.innerHTML = html;
