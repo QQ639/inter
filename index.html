@@ -4650,6 +4650,10 @@ function printCover(id){
     .ap{align-items:baseline;}
     /* ส่วนหัว: ที่อยู่ ๑ บรรทัด เบอร์ ๑ บรรทัด (ย่อเองถ้ายาวเกิน) */
     .ht small{white-space:nowrap;}
+    /* หน้า ๒: ชื่อคู่ความอาจยาวมาก (เช่น "กับพวกรวม ๒๙ คน") ห้ามบังคับบรรทัดเดียว
+       เดิมบรรทัดนี้กว้างเกินหน้ากระดาษ Chrome จึงย่อ "ทุกหน้า" ลงให้พอดี หน้าปกเลยเล็กไม่เต็ม A4 */
+    .page2 .ht{min-width:0;}
+    .page2 .ht small{white-space:normal;}
   </style></head><body>
   <div class="wm"><img src="${logo}"></div>
   <div class="wrap">
@@ -4796,6 +4800,8 @@ function printCover(id){
       const maxH = probe.offsetHeight, maxW = probe.offsetWidth;
       probe.remove();
       main.style.width = maxW + "px";
+      const p2w = d.querySelector(".page2");
+      if(p2w) p2w.style.width = maxW + "px";
 
       // ๐) ส่วนหัว: ย่อบรรทัดที่อยู่/เบอร์ ให้อยู่บรรทัดเดียวพอดีความกว้าง
       const head = d.querySelector(".main .head");
